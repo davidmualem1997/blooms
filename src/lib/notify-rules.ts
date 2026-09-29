@@ -43,5 +43,6 @@ export async function runNotifications(opts: { dry?: boolean; at?: number } = {}
     sent += await sendPush(p.to, { title: p.title, body: p.body, url: p.url, tag: p.tag });
   }
   await admin.from("notification_log").delete().lt("sent_at", new Date(now - 90 * 864e5).toISOString());
+  await admin.from("activity").delete().lt("created_at", new Date(now - 120 * 864e5).toISOString()); // פיד הפעילות שומר 4 חודשים
   return { sent, planned };
 }
