@@ -119,7 +119,18 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
       </section>
       <section className="sec">
         <div className="label dotted">מקורות נתונים</div>
-        {typeof sp.err === "string" && <p className="error">{CONNECT_ERRORS[sp.err] ?? "החיבור נכשל"}</p>}
+        {typeof sp.err === "string" && (
+          <div className="card stack tight">
+            <p className="error">{CONNECT_ERRORS[sp.err] ?? "החיבור נכשל"}</p>
+            {sp.err === "no-pages" && (
+              <span className="txt">
+                {typeof sp.missing === "string" && sp.missing
+                  ? `פייסבוק לא אישר את ההרשאות: ${sp.missing}. בחלון ההתחברות צריך לאשר את כולן.`
+                  : "בחלון ההתחברות של פייסבוק צריך לסמן את העמודים של הלקוחות (\"בחירת עמודים\"). אם הם לא מופיעים שם – החשבון הזה עוד לא מנהל אותם."}
+              </span>
+            )}
+          </div>
+        )}
         {pendingMeta && typeof sp.meta === "string" && <MetaPicker clientId={clientId} pendingId={sp.meta} accounts={pendingMeta} suggested={igHandle} />}
         <div className="note">
           {PROVIDERS.map((pr) => {

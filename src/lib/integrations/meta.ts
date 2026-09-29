@@ -50,21 +50,44 @@ export async function exchangeCode(code: string, redirectUri: string) {
 
 export type MetaAccount = { pageId: string; pageName: string; pageToken: string; igId: string | null; igUsername: string | null; picture: string | null };
 
+type PageRow = { id: string; name: string; access_token?: string; instagram_business_account?: { id: string; username?: string; profile_picture_url?: string } };
+const PAGE_FIELDS = "id,name,access_token,instagram_business_account{id,username,profile_picture_url}";
+
+async function allPages(path: string, token: string): Promise<PageRow[]> {
+  const rows: PageRow[] = [];
+  let res = await graph<{ data: PageRow[]; paging?: { next?: string } }>(path, { fields: PAGE_FIELDS, limit: "100" }, token);
+  for (;;) {
+    rows.push(...res.data);
+    if (!res.paging?.next) return rows;
+    res = await (await fetch(res.paging.next, { cache: "no-store" })).json();
+  }
+}
+
+// העמודים שהמשתמש מנהל: ישירות, וגם דרך Business Manager (עמודים בבעלות העסק ועמודים של לקוחות העסק)
 export async function listAccounts(userToken: string): Promise<MetaAccount[]> {
-  const out: MetaAccount[] = [];
-  let next: string | null = null;
-  let page = await graph<{ data: { id: string; name: string; access_token: string; instagram_business_account?: { id: string; username?: string; profile_picture_url?: string } }[]; paging?: { next?: string } }>(
-    "me/accounts", { fields: "id,name,access_token,instagram_business_account{id,username,profile_picture_url}", limit: "100" }, userToken);
-  do {
-    for (const p of page.data) out.push({
-      pageId: p.id, pageName: p.name, pageToken: p.access_token,
-      igId: p.instagram_business_account?.id ?? null, igUsername: p.instagram_business_account?.username ?? null,
-      picture: p.instagram_business_account?.profile_picture_url ?? null,
-    });
-    next = page.paging?.next ?? null;
-    if (next) page = await (await fetch(next, { cache: "no-store" })).json();
-  } while (next);
-  return out;
+  const found = new Map<string, PageRow>();
+  for (const p of await allPages("me/accounts", userToken)) found.set(p.id, p);
+  try {
+    const { data: businesses } = await graph<{ data: { id: string }[] }>("me/businesses", { limit: "50" }, userToken);
+    for (const b of businesses) {
+      for (const edge of ["owned_pages", "client_pages"]) {
+        try { for (const p of await allPages(`${b.id}/${edge}`, userToken)) if (!found.get(p.id)?.access_token) found.set(p.id, p); } catch { /* אין גישה לרשימה הזו */ }
+      }
+    }
+  } catch { /* אין הרשאת business_management */ }
+  return [...found.values()].filter((p) => p.access_token).map((p) => ({
+    pageId: p.id, pageName: p.name, pageToken: p.access_token!,
+    igId: p.instagram_business_account?.id ?? null, igUsername: p.instagram_business_account?.username ?? null,
+    picture: p.instagram_business_account?.profile_picture_url ?? null,
+  }));
+}
+
+// אילו הרשאות פייסבוק באמת אישר (לאבחון כשלא נמצאים עמודים)
+export async function grantedPermissions(userToken: string) {
+  try {
+    const { data } = await graph<{ data: { permission: string; status: string }[] }>("me/permissions", {}, userToken);
+    return { granted: data.filter((p) => p.status === "granted").map((p) => p.permission), declined: data.filter((p) => p.status !== "granted").map((p) => p.permission) };
+  } catch { return null; }
 }
 
 export type MetaSecret = { pageId: string; pageToken: string; igId: string | null };

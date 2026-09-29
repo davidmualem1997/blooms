@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { encryptSecret } from "@/lib/integrations/crypto";
-import { exchangeCode, listAccounts } from "@/lib/integrations/meta";
+import { META_SCOPES, exchangeCode, grantedPermissions, listAccounts } from "@/lib/integrations/meta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +22,13 @@ export async function GET(request: NextRequest) {
   try {
     const token = await exchangeCode(code, new URL("/api/integrations/meta/callback", request.url).toString());
     const accounts = await listAccounts(token);
-    if (!accounts.length) return fail("no-pages");
+    if (!accounts.length) {
+      // מה חסר: הרשאות שלא אושרו בחלון ההתחברות
+      const perms = await grantedPermissions(token);
+      const missing = perms ? META_SCOPES.filter((p) => !perms.granted.includes(p)) : [];
+      back.searchParams.set("missing", missing.join(","));
+      return fail("no-pages");
+    }
     const admin = createAdminClient();
     await admin.from("integration_pending").delete().lt("created_at", new Date(Date.now() - 3600e3).toISOString());
     const { data: pending } = await admin.from("integration_pending")
