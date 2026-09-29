@@ -9,10 +9,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export type PushPayload = { title: string; body: string; url: string; tag?: string };
 
 export function pushConfigured() {
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv || !process.env.SUPABASE_SECRET_KEY) return false;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:noreply@blooms.app", pub, priv);
+  // trim: ערכים שהוכנסו ל-Vercel דרך pipe מגיעים לפעמים עם ירידת שורה בסוף
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const priv = process.env.VAPID_PRIVATE_KEY?.trim();
+  if (!pub || !priv || !process.env.SUPABASE_SECRET_KEY?.trim()) return false;
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "mailto:noreply@blooms.app", pub, priv);
   return true;
 }
 

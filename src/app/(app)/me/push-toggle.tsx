@@ -43,7 +43,7 @@ export function PushToggle() {
       if (permission !== "granted") return setState(permission === "denied" ? "denied" : "off");
       const reg = await registration();
       await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!) });
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!.trim()) });
       const res = await subscribePush(JSON.parse(JSON.stringify(sub)));
       if (res.error) return setMsg("לא הצלחנו להפעיל. נסו שוב.");
       setState("on");
