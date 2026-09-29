@@ -5,6 +5,7 @@ import { MONTHS, shortDate, todayIL } from "@/lib/dates";
 import { loadMonthlyReport } from "@/lib/monthly-report";
 import { BUSINESS_FIELDS, POST_STATS, fmt, type Kpi, type Post } from "@/lib/report-calc";
 import { TYPE_LABEL } from "@/lib/types";
+import { LINK_KINDS } from "@/lib/links";
 import { Chevron } from "@/components/chevron";
 import { LineChart } from "@/components/line-chart";
 import { ReportEditor } from "./report-editor";
@@ -49,7 +50,8 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/c
     return <div className="sec">{header}<p className="txt">הדוח של החודש הזה עוד בהכנה. נעדכן כשהוא מוכן.</p></div>;
   }
 
-  const empty = !r.kpis.length && !r.measured.length && !bizValues.length;
+  const autoClicks = LINK_KINDS.filter((k) => r.linkClicks[k.k]);
+  const empty = !r.kpis.length && !r.measured.length && !bizValues.length && !autoClicks.length;
 
   return (
     <div className="sec report">
@@ -127,12 +129,15 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/c
       )}
 
       {/* 5. תוצאה עסקית */}
-      {bizValues.length > 0 && (
+      {(bizValues.length > 0 || autoClicks.length > 0) && (
         <section className="stack tight">
           <div className="label dotted">מה זה עשה לעסק</div>
           <div className="rkpis biz">
             {bizValues.map((f) => (
               <div key={f.k} className="kpi"><b className="num">{f.money ? "₪" : ""}{fmt(r.report!.business[f.k])}{f.pct ? "%" : ""}</b><span>{f.l}</span></div>
+            ))}
+            {autoClicks.map((k) => (
+              <div key={k.k} className="kpi"><b className="num">{fmt(r.linkClicks[k.k])}</b><span>{k.report}</span><small className="txt">מקישורי BLOOMS</small></div>
             ))}
           </div>
         </section>

@@ -1,5 +1,5 @@
 import { getContext, memberName } from "@/lib/context";
-import { todayIL } from "@/lib/dates";
+import { israelToUTC, parseISODate, todayIL, toISODate } from "@/lib/dates";
 import type { Brand, ClientEvent, Meeting, Message, Task } from "@/lib/types";
 import { ClientFile, type FileTab } from "./client-file";
 import { guessIndustry, type Industry } from "@/lib/holidays";
@@ -7,6 +7,10 @@ import { signPaths } from "@/lib/media-server";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmButton, IndustryPicker, InviteForm, ManagerPicker } from "@/components/admin-ui";
 import { cancelInvite, removeClientUser } from "../../../admin-actions";
+import { headers } from "next/headers";
+import { PROVIDERS } from "@/lib/integrations/providers";
+import { slugify, type LinkKind } from "@/lib/links";
+import { LinksManager } from "./links-manager";
 
 export default async function ClientFilePage({ params, searchParams }: PageProps<"/c/[clientId]/file">) {
   const { clientId } = await params;
@@ -29,7 +33,7 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
   const images = await signPaths([brand.cover_path, brand.logo_path, ...(brand.elements ?? []), ...evs.flatMap((e) => (e.images ?? []).map((i) => i.thumb))]);
   const industry = (brand.industry as Industry) || guessIndustry([client.name, brand.story, brand.audience].join(" "));
 
-  const tabs: FileTab[] = ["general", "brand", "ops", "events", "meetings", "contacts", "settings"];
+  const tabs: FileTab[] = ["general", "brand", "ops", "events", "meetings", "contacts", "connections", "settings"];
   const initialTab = tabs.includes(sp.tab as FileTab) && (sp.tab !== "settings" || isOwner) ? (sp.tab as FileTab) : "general";
   let settings: React.ReactNode = undefined;
   if (isOwner) {
@@ -83,8 +87,46 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
     );
   }
 
+  // ---- חיבורים: קישורי BLOOMS (עם לחיצות ב-30 הימים האחרונים) ומקורות נתונים
+  const h = await headers();
+  const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const since = israelToUTC(toISODate(new Date(parseISODate(today).getTime() - 30 * 864e5)), "00:00");
+  const [{ data: clientRow }, { data: links }, { data: clicks }, { data: integrations }] = await Promise.all([
+    supabase.from("clients").select("link_handle").eq("id", clientId).single(),
+    supabase.from("links").select("id, slug, label, kind, target").eq("client_id", clientId).order("position"),
+    supabase.from("link_clicks").select("link_id").eq("client_id", clientId).gte("clicked_at", since),
+    supabase.from("integrations").select("provider, external_name, status, last_sync_at").eq("client_id", clientId),
+  ]);
+  const count = (id: string) => (clicks ?? []).filter((c) => c.link_id === id).length;
+  const connections = (
+    <>
+      <section className="sec">
+        <div className="sechead"><div className="label dotted">קישורי BLOOMS</div><span className="txt">כל לחיצה נספרת בדוח החודשי</span></div>
+        <LinksManager clientId={clientId} base={base} handle={clientRow?.link_handle ?? null} isStaff={isStaff}
+          suggestedHandle={slugify(brand.socials?.instagram?.replace(/^.*instagram\.com\//, "").replace(/^@/, "") ?? "") || ""}
+          links={(links ?? []).map((l) => ({ ...l, kind: l.kind as LinkKind, clicks: count(l.id) }))} />
+      </section>
+      <section className="sec">
+        <div className="label dotted">מקורות נתונים</div>
+        <div className="note">
+          {PROVIDERS.map((pr) => {
+            const on = (integrations ?? []).find((i) => i.provider === pr.k);
+            return (
+              <div key={pr.k} className="conn">
+                <b className="w500">{pr.l}</b>
+                <span className="txt">{on ? `מחובר · ${on.external_name}` : pr.soon ? "בקרוב" : ""}</span>
+                <small>{pr.gives}</small>
+              </div>
+            );
+          })}
+        </div>
+        <span className="txt">בינתיים את הנתונים מהמקורות האלה מזינים ידנית בדוח החודשי.</span>
+      </section>
+    </>
+  );
+
   return (
-    <ClientFile clientName={client.name} initialTab={initialTab} settings={settings}
+    <ClientFile clientName={client.name} initialTab={initialTab} settings={settings} connections={connections}
       clientId={clientId} studioId={client.studio_id} brand={brand} isStaff={isStaff} isVenue={industry === "food" || industry === "retail"}
       userId={ctx.userId} images={images} today={today} events={evs}
       team={ctx.team.map((t) => ({ id: t.id, name: t.full_name || memberName(ctx, t.id) }))}

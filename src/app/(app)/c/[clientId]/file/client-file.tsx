@@ -11,16 +11,17 @@ import {
   addMeeting, addTask, deleteEvent, deleteMeeting, deleteTask, saveEvent, saveSummary, setMeetingTopics, updateBrand, updateTask,
 } from "./actions";
 
-export type FileTab = "general" | "brand" | "ops" | "events" | "meetings" | "contacts" | "settings";
+export type FileTab = "general" | "brand" | "ops" | "events" | "meetings" | "contacts" | "connections" | "settings";
 const TABS: { k: FileTab; l: string }[] = [
   { k: "general", l: "כללי" }, { k: "brand", l: "מותג" }, { k: "ops", l: "תפעול" },
-  { k: "events", l: "אירועים" }, { k: "meetings", l: "פגישות" }, { k: "contacts", l: "אנשי קשר" },
+  { k: "events", l: "אירועים" }, { k: "meetings", l: "פגישות" }, { k: "contacts", l: "אנשי קשר" }, { k: "connections", l: "חיבורים" },
 ];
 
 type Props = {
   clientName: string;
   initialTab: FileTab;
   settings?: React.ReactNode; // "הגדרות" – רק למנהלת הסטודיו
+  connections: React.ReactNode; // "חיבורים": קישורי BLOOMS ומקורות נתונים
   clientId: string;
   studioId: string;
   brand: Brand;
@@ -417,6 +418,7 @@ export function ClientFile(p: Props) {
       </section>
 
       </>)}
+      {tab === "connections" && p.connections}
       {tab === "settings" && p.settings}
 
       {form && <FormSheet form={form} onClose={() => setForm(null)} />}
