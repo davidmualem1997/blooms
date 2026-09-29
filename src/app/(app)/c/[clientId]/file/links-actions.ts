@@ -46,7 +46,7 @@ export async function deleteLink(clientId: string, id: string) {
 }
 
 // יצירה בלחיצה אחת מהפרטים שכבר בתיק הלקוח (הזמנת מקום, תפריט, ניווט, טלפון, אתר)
-export async function linksFromClientFile(clientId: string) {
+export async function linksFromClientFile(clientId: string): Promise<number> {
   const supabase = await createClient();
   const { data: client } = await supabase.from("clients").select("brand").eq("id", clientId).single();
   const b = (client?.brand ?? {}) as Brand;
@@ -59,6 +59,8 @@ export async function linksFromClientFile(clientId: string) {
   ];
   const { data: existing } = await supabase.from("links").select("kind").eq("client_id", clientId);
   const have = new Set((existing ?? []).map((l) => l.kind));
-  for (const w of wanted) if (w.target && !have.has(w.kind)) await saveLink(clientId, { label: w.label, kind: w.kind, target: w.target });
+  let created = 0;
+  for (const w of wanted) if (w.target && !have.has(w.kind) && !(await saveLink(clientId, { label: w.label, kind: w.kind, target: w.target })).error) created++;
   done(clientId);
+  return created;
 }

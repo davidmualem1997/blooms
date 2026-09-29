@@ -24,11 +24,11 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/c
   if (!client) notFound();
   const isStaff = ctx.role !== "client";
 
-  // ברירת מחדל: החודש הקודם (דוח נכתב על חודש שהסתיים)
+  // ברירת מחדל: בתחילת החודש (עד ה-5) – החודש שהסתיים, שעליו כותבים את הדוח; אחר כך – החודש הנוכחי
   const today = todayIL();
-  const [y, m] = today.split("-").map(Number);
-  const lastMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
-  const ym = typeof sp.m === "string" && /^\d{4}-\d{2}$/.test(sp.m) ? sp.m : lastMonth;
+  const [y, m, d] = today.split("-").map(Number);
+  const defaultMonth = d <= 5 ? new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7) : today.slice(0, 7);
+  const ym = typeof sp.m === "string" && /^\d{4}-\d{2}$/.test(sp.m) ? sp.m : defaultMonth;
   const r = await loadMonthlyReport(client, `${ym}-01`);
   const published = !!r.report?.published_at;
   const biz = BUSINESS_FIELDS[r.industry];

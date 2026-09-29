@@ -5,8 +5,9 @@ import { fmt } from "@/lib/report-calc";
 
 // כרטיס קטן בדף הבית של הלקוח – מוביל לדוח החודשי של החודש שהסתיים
 export async function ReportChip({ clientId, today, isStaff }: { clientId: string; today: string; isStaff: boolean }) {
-  const [y, m] = today.split("-").map(Number);
-  const month = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10);
+  // כמו בדף הדוח: עד ה-5 בחודש – החודש שהסתיים, אחר כך – החודש הנוכחי
+  const [y, m, d] = today.split("-").map(Number);
+  const month = d <= 5 ? new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10) : `${today.slice(0, 7)}-01`;
   const supabase = await createClient();
   const [{ data: metrics }, { data: report }] = await Promise.all([
     supabase.from("metrics").select("followers, reach").eq("client_id", clientId).eq("month", month),

@@ -55,12 +55,15 @@ export function LinksManager({ clientId, base, handle, links, isStaff, suggested
             </span>
           </div>
         ))}
-        {!links.length && <p className="empty">עוד אין קישורים</p>}
+        {!links.length && <p className="empty">עוד אין קישורים. מוסיפים קישור (למשל ניווט ב-Waze או הזמנת מקום), והוא יופיע ככפתור בלינק בביו.</p>}
       </div>
       {isStaff && (
         <span className="row-gap">
           <button className="pbtn" onClick={() => setEdit("new")}>קישור חדש</button>
-          <button className="tbtn" disabled={pending} onClick={() => start(() => linksFromClientFile(clientId))}>יצירה מהפרטים בתיק הלקוח</button>
+          <button className="tbtn" disabled={pending} onClick={() => start(async () => {
+            const n = await linksFromClientFile(clientId);
+            setMsg(n ? `נוצרו ${n} קישורים` : "לא נמצאו פרטים חדשים בתיק הלקוח (הזמנת מקום, תפריט, ניווט, טלפון, אתר). אפשר להוסיף קישור ידנית.");
+          })}>יצירה מהפרטים בתיק הלקוח</button>
         </span>
       )}
 
