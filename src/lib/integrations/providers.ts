@@ -3,7 +3,7 @@
 export type Provider = "meta" | "tiktok" | "ga4" | "shopify" | "woocommerce" | "wix" | "webflow";
 
 export const PROVIDERS: { k: Provider; l: string; gives: string; soon: boolean }[] = [
-  { k: "meta", l: "Instagram + Facebook", gives: "עוקבים, חשיפה, צפיות, כניסות לפרופיל, קליקים, ונתונים לכל פוסט", soon: true },
+  { k: "meta", l: "Instagram + Facebook", gives: "עוקבים, חשיפה, צפיות, כניסות לפרופיל, קליקים, ונתונים לכל פוסט – מתעדכן כל לילה", soon: false },
   { k: "tiktok", l: "TikTok", gives: "צפיות, לייקים ושיתופים לכל סרטון, ועוקבים", soon: true },
   { k: "ga4", l: "Google Analytics", gives: "כניסות לאתר מהסושיאל והמרות", soon: true },
   { k: "shopify", l: "Shopify", gives: "הכנסות, הזמנות, מוצרים מובילים והזמנות מהסושיאל", soon: true },

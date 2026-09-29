@@ -1,1 +1,1 @@
-{"crons":[{"path":"/api/cron/trends","schedule":"0 4 * * 0"}],"regions":["dub1"]}
+{"crons":[{"path":"/api/cron/trends","schedule":"0 4 * * 0"},{"path":"/api/cron/sync","schedule":"0 2 * * *"}],"regions":["dub1"]}

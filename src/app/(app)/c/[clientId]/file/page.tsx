@@ -11,6 +11,15 @@ import { headers } from "next/headers";
 import { PROVIDERS } from "@/lib/integrations/providers";
 import { slugify, type LinkKind } from "@/lib/links";
 import { LinksManager } from "./links-manager";
+import { MetaPicker, MetaRow } from "./connections";
+import { loadPendingMeta } from "./integration-actions";
+import { metaConfigured } from "@/lib/integrations/meta";
+
+const CONNECT_ERRORS: Record<string, string> = {
+  "meta-not-configured": "החיבור ל-Meta עוד לא הוגדר בשרת (חסרים מפתחות האפליקציה)",
+  denied: "ההתחברות בוטלה", state: "ההתחברות פגה – נסו שוב", access: "אין הרשאה ללקוח הזה",
+  "no-pages": "לא נמצאו עמודים שאתם מנהלים בחשבון הפייסבוק הזה", exchange: "פייסבוק לא אישר את ההתחברות – נסו שוב", "no-code": "ההתחברות לא הושלמה",
+};
 
 export default async function ClientFilePage({ params, searchParams }: PageProps<"/c/[clientId]/file">) {
   const { clientId } = await params;
@@ -95,8 +104,10 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
     supabase.from("clients").select("link_handle").eq("id", clientId).single(),
     supabase.from("links").select("id, slug, label, kind, target").eq("client_id", clientId).order("position"),
     supabase.from("link_clicks").select("link_id").eq("client_id", clientId).gte("clicked_at", since),
-    supabase.from("integrations").select("provider, external_name, status, last_sync_at").eq("client_id", clientId),
+    supabase.from("integrations").select("provider, external_name, status, last_sync_at, last_error").eq("client_id", clientId),
   ]);
+  const pendingMeta = typeof sp.meta === "string" ? await loadPendingMeta(clientId, sp.meta) : null;
+  const igHandle = (brand.socials?.instagram ?? "").replace(/^.*instagram\.com\//, "").replace(/[@/]/g, "").toLowerCase();
   const count = (id: string) => (clicks ?? []).filter((c) => c.link_id === id).length;
   const connections = (
     <>
@@ -108,19 +119,24 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
       </section>
       <section className="sec">
         <div className="label dotted">מקורות נתונים</div>
+        {typeof sp.err === "string" && <p className="error">{CONNECT_ERRORS[sp.err] ?? "החיבור נכשל"}</p>}
+        {pendingMeta && typeof sp.meta === "string" && <MetaPicker clientId={clientId} pendingId={sp.meta} accounts={pendingMeta} suggested={igHandle} />}
         <div className="note">
           {PROVIDERS.map((pr) => {
             const on = (integrations ?? []).find((i) => i.provider === pr.k);
             return (
               <div key={pr.k} className="conn">
                 <b className="w500">{pr.l}</b>
-                <span className="txt">{on ? `מחובר · ${on.external_name}` : pr.soon ? "בקרוב" : ""}</span>
+                {pr.k === "meta"
+                  ? (on ? null : <MetaRow clientId={clientId} connected={false} canConnect={metaConfigured()} />)
+                  : <span className="txt">{on ? `מחובר · ${on.external_name}` : "בקרוב"}</span>}
                 <small>{pr.gives}</small>
+                {pr.k === "meta" && on && <MetaRow clientId={clientId} connected name={on.external_name} status={on.status} lastSync={on.last_sync_at} lastError={on.last_error} canConnect />}
               </div>
             );
           })}
         </div>
-        <span className="txt">בינתיים את הנתונים מהמקורות האלה מזינים ידנית בדוח החודשי.</span>
+        <span className="txt">מה שלא מחובר – מזינים ידנית בדוח החודשי. החיבורים לקריאה בלבד: BLOOMS לא מפרסם ולא משנה כלום בחשבונות.</span>
       </section>
     </>
   );
