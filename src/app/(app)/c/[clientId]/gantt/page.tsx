@@ -46,6 +46,8 @@ export default async function GanttPage({ params, searchParams }: PageProps<"/c/
         <Link href={`?m=${next}`} aria-label="חודש הבא"><Chevron dir="forward" /></Link>
       </div>
       <GanttBoard
+        key={typeof sp.item === "string" ? sp.item : "board"}
+        openItem={typeof sp.item === "string" ? sp.item : undefined}
         clientId={clientId}
         studioId={studioId}
         thumbs={thumbs}

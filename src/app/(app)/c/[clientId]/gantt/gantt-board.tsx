@@ -15,13 +15,17 @@ type Props = {
   clientId: string; studioId: string; thumbs: Record<string, string>; month: string; today: string; canEdit: boolean;
   items: ContentItem[]; recurring: RecurringStory[]; oneOff: OneOffStory[]; checks: string[]; focus: FocusItem[];
   special: CalEvent[]; custom: ClientEvent[];
+  openItem?: string; // מהתראה: פותח את הפריט ישר
 };
 
 const WD_SHORT = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 
 export function GanttBoard(p: Props) {
   const [day, setDay] = useState<string | null>(null);
-  const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [editor, setEditor] = useState<EditorTarget | null>(() => {
+    const it = p.canEdit && p.openItem ? p.items.find((i) => i.id === p.openItem) : undefined;
+    return it ? { item: it, date: it.date } : null;
+  });
   const [, start] = useTransition();
 
   const first = parseISODate(p.month);
