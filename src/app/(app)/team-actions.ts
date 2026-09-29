@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
 import { israelToUTC } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { generateWeeklyTrends } from "@/lib/trends";
+import { generateWeeklyTrends, trendsConfigured } from "@/lib/trends";
 
 // פגישות צוות: מנהלת הסטודיו קובעת ומסכמת; המשתתפים מוסיפים ומסמנים נושאים (נאכף ב-RLS ובטריגר)
 
@@ -54,8 +54,8 @@ export async function deleteTeamMeeting(id: string) {
 export async function refreshTrends(): Promise<{ error?: string }> {
   const ctx = await getContext();
   if (ctx.role !== "owner") return { error: "רק מנהלת הסטודיו יכולה לרענן" };
-  if (!process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SECRET_KEY) {
-    return { error: "חסרים מפתחות: ANTHROPIC_API_KEY ו-SUPABASE_SECRET_KEY ב-.env.local" };
+  if (!trendsConfigured() || !process.env.SUPABASE_SECRET_KEY) {
+    return { error: "חסרים מפתחות: OPENAI_API_KEY ו-SUPABASE_SECRET_KEY" };
   }
   try {
     await generateWeeklyTrends();

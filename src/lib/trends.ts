@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseISODate, toISODate, todayIL } from "@/lib/dates";
 
@@ -21,8 +22,20 @@ const PROMPT = (week: string) => `את/ה עוזר/ת מחקר של סטודיו
 [{"title": "שם הטרנד בעברית", "what": "מה זה, משפט או שניים", "how": "איך עסק קטן יכול להשתמש בזה, משפט אחד", "platform": "TikTok / Instagram / שתיהן", "source": "URL של מקור אחד"}]
 בדיוק 3 פריטים, הכול בעברית חוץ מה-URL.`;
 
-// מחקר שבועי עם חיפוש ברשת. רץ פעם בשבוע (cron) ונשמר בטבלה weekly_trends
-export async function generateWeeklyTrends(week = currentWeekStart()): Promise<Trend[]> {
+// יש מפתח OpenAI (OPENAI_API_KEY) – משתמשים בו; אחרת Claude (ANTHROPIC_API_KEY)
+export const trendsConfigured = () => Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim());
+
+async function researchOpenAI(week: string): Promise<string> {
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY!.trim() });
+  const response = await client.responses.create({
+    model: process.env.OPENAI_TRENDS_MODEL?.trim() || "gpt-5.4-mini",
+    tools: [{ type: "web_search" }],
+    input: PROMPT(week),
+  });
+  return response.output_text;
+}
+
+async function researchClaude(week: string): Promise<string> {
   const client = new Anthropic();
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: PROMPT(week) }];
   let response: Anthropic.Beta.BetaMessage | undefined;
@@ -42,8 +55,12 @@ export async function generateWeeklyTrends(week = currentWeekStart()): Promise<T
     messages.push({ role: "assistant", content: response.content });
   }
   if (!response || response.stop_reason === "refusal") throw new Error("trend research was declined");
+  return response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+}
 
-  const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+// מחקר שבועי עם חיפוש ברשת. רץ פעם בשבוע (cron) ונשמר בטבלה weekly_trends
+export async function generateWeeklyTrends(week = currentWeekStart()): Promise<Trend[]> {
+  const text = process.env.OPENAI_API_KEY?.trim() ? await researchOpenAI(week) : await researchClaude(week);
   const json = text.match(/\[[\s\S]*\]/)?.[0];
   if (!json) throw new Error("no JSON in trend response");
   const items = (JSON.parse(json) as Trend[]).slice(0, 3).map((t) => ({
