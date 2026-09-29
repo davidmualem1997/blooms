@@ -5,11 +5,13 @@ import { deleteItem, mediaUrl, saveItem } from "@/app/(app)/c/[clientId]/gantt/a
 import { uploadMedia, type MediaEntry } from "@/lib/media-client";
 import { STATUS_LABEL, TYPE_LABEL, type ContentItem, type ContentStatus, type ContentType } from "@/lib/types";
 import { Sheet } from "./sheet";
+import { POST_STATS } from "@/lib/report-calc";
 
 const TYPES = Object.keys(TYPE_LABEL) as ContentType[];
 const STATUSES = Object.keys(STATUS_LABEL) as ContentStatus[];
 
-const STAT_FIELDS: [string, string][] = [["views", "צפיות"], ["reach", "חשיפה"], ["likes", "לייקים"], ["comments", "תגובות"], ["saves", "שמירות"], ["shares", "שיתופים"]];
+// אותם שדות כמו בדוח החודשי
+const STAT_FIELDS: [string, string][] = POST_STATS.map((s) => [s.k, s.l]);
 function readStats(form: FormData) {
   const out: Record<string, number> = {};
   for (const [k] of STAT_FIELDS) {

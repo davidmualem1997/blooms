@@ -7,6 +7,7 @@ import { Avatar } from "./avatar";
 import { Chevron } from "./chevron";
 import { NeedsYou, TodayCard } from "./client-home-parts";
 import { LogoEdit } from "./hero-brand-edit";
+import { ReportChip } from "./data-report";
 
 const TYPE_SHORT = { post: "Post", reel: "Reel", tiktok: "TikTok" } as const;
 const WD = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
@@ -89,6 +90,9 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
           ? todays.map((i) => <TodayCard key={i.id} item={i} thumb={i.thumb_path ? signed[i.thumb_path] : undefined} />)
           : <p className="txt">אין תוכן שמתוכנן להיום</p>}
       </section>
+
+      {/* הדוח החודשי – מופיע רק כשהצוות פרסם אותו */}
+      <ReportChip clientId={client.id} today={today} isStaff={false} />
 
       {marketingItems.length > 0 && (
         <section className="sec">
