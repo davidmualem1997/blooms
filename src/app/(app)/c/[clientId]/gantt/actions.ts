@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { notifyLater } from "@/lib/push";
-import { TYPE_LABEL, type ContentStatus, type ContentType } from "@/lib/types";
+import type { ContentStatus, ContentType } from "@/lib/types";
 
 // כל הכתיבות עוברות RLS: רק צוות הלקוח (מנהלת הסטודיו או מנהל/ת הלקוח) יכול לשנות
 
@@ -11,6 +10,7 @@ export type ItemInput = {
   id?: string;
   client_id: string;
   date: string;
+  time?: string | null;
   type: ContentType;
   status: ContentStatus;
   title: string;
@@ -30,6 +30,7 @@ export async function saveItem(input: ItemInput): Promise<{ error?: string }> {
   const row = {
     client_id: input.client_id,
     date: input.date,
+    ...(input.time !== undefined ? { time: input.time || null } : {}),
     type: input.type,
     status: input.status,
     title: input.title.trim() || "ללא נושא",
@@ -42,10 +43,8 @@ export async function saveItem(input: ItemInput): Promise<{ error?: string }> {
   const { data: auth } = await supabase.auth.getUser();
   // קבצים שהוסרו מהפריט נמחקים מהאחסון
   let removed: string[] = [];
-  let prevStatus: ContentStatus | null = null;
   if (input.id) {
-    const { data: prev } = await supabase.from("content_items").select("media, status").eq("id", input.id).single();
-    prevStatus = (prev?.status ?? null) as ContentStatus | null;
+    const { data: prev } = await supabase.from("content_items").select("media").eq("id", input.id).single();
     const keep = new Set(input.media.flatMap((m) => [m.path, m.thumb]));
     removed = ((prev?.media ?? []) as ItemInput["media"]).flatMap((m) => [m.path, m.thumb]).filter((p): p is string => !!p && !keep.has(p));
   }
@@ -54,17 +53,8 @@ export async function saveItem(input: ItemInput): Promise<{ error?: string }> {
     : await supabase.from("content_items").insert({ ...row, created_by: auth.user?.id });
   if (error) return { error: "לא הצלחנו לשמור. ייתכן שאין לך הרשאה ללקוח הזה." };
   if (removed.length) await supabase.storage.from("media").remove(removed);
-  if (input.status !== prevStatus) notifyStatus(input, row.title, auth.user?.id);
   done(input.client_id);
   return {};
-}
-
-// שינוי סטטוס: "לאישור הלקוח" → ללקוח; "לבדיקה" → למנהלת הסטודיו ולמנהל/ת הלקוח
-function notifyStatus(input: ItemInput, title: string, actorId?: string) {
-  const what = `${TYPE_LABEL[input.type]} "${title}"`;
-  const url = `/c/${input.client_id}/gantt?m=${input.date.slice(0, 7)}`;
-  if (input.status === "client") notifyLater({ clientId: input.client_id, who: "client" }, { body: `${what} מחכה לאישור שלך`, url: `/c/${input.client_id}`, tag: `approve-${input.client_id}` }, actorId);
-  if (input.status === "review") notifyLater({ clientId: input.client_id, who: "staff" }, { body: `${what} מחכה לבדיקה`, url, tag: `review-${input.client_id}` }, actorId);
 }
 
 // קישור זמני לקובץ המקורי, להורדה ולהעלאה ידנית לרשתות

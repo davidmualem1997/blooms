@@ -24,6 +24,7 @@ export type ContentItem = {
   id: string;
   client_id: string;
   date: string;
+  time?: string | null; // שעת עלייה מתוכננת, לתזכורת לפני העלאה
   type: ContentType;
   title: string;
   caption: string;
@@ -85,4 +86,4 @@ export type Meeting = { id: string; kind: "meet" | "call" | "zoom"; starts_at: s
 export type Idea = { id: string; client_id: string; month: string; title: string; note: string; url: string; image_path: string | null; source: "team" | "client"; used: boolean; created_at: string; author?: string };
 
 export type TeamMeeting = { id: string; starts_at: string; kind: "meet" | "call" | "zoom"; location: string; attendee_ids: string[]; topics: { text: string; done: boolean }[]; summary: string };
-export type ClientEvent = { id: string; client_id: string; date: string; title: string; description?: string; link?: string; images?: { path: string; thumb: string | null }[] };
+export type ClientEvent = { id: string; client_id: string; date: string; title: string; description?: string; link?: string; needs_material?: boolean; images?: { path: string; thumb: string | null }[] };

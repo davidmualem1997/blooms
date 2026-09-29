@@ -26,6 +26,7 @@ export async function addIdea(clientId: string, month: string, input: IdeaInput)
     source: isClient ? "client" : "team", created_by: auth.user?.id,
   });
   if (error) return { error: "לא הצלחנו לשמור את הרעיון" };
+  notifyLater({ clientId, who: "team" }, { body: `רעיון חדש: ${input.title.trim() || input.url || "רעיון"}`, url: `/c/${clientId}/inspiration`, tag: `idea-${clientId}` }, auth.user?.id);
   done(clientId);
   return {};
 }
@@ -60,7 +61,7 @@ export async function sendMessage(clientId: string, kind: "request" | "fix" | "c
   const { data: auth } = await supabase.auth.getUser();
   const { error } = await supabase.from("messages").insert({ client_id: clientId, kind, body: body.trim(), created_by: auth.user?.id });
   if (error) return { error: "ההודעה לא נשלחה. נסו שוב." };
-  notifyLater({ clientId, who: "staff" }, { body: `${MESSAGE_LABEL[kind]} חדש/ה: ${body.trim().slice(0, 90)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
+  notifyLater({ clientId, who: "manager" }, { body: `${kind === "fix" ? "בקשת תיקון" : kind === "call" ? MESSAGE_LABEL.call : "פנייה חדשה"}: ${body.trim().slice(0, 90)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
   done(clientId);
   return {};
 }
@@ -72,7 +73,7 @@ export async function reviewItem(clientId: string, itemId: string, approve: bool
   if (!error) {
     const { data: item } = await supabase.from("content_items").select("title, date").eq("id", itemId).single();
     const body = approve ? `אישר/ה ✓ "${item?.title ?? ""}"` : `ביקש/ה תיקון ב"${item?.title ?? ""}"${note.trim() ? `: ${note.trim().slice(0, 80)}` : ""}`;
-    notifyLater({ clientId, who: "staff" }, { body, url: `/c/${clientId}/gantt?m=${item?.date?.slice(0, 7) ?? ""}`, tag: `reviewed-${itemId}` }, auth.user?.id);
+    notifyLater({ clientId, who: "manager" }, { body, url: `/c/${clientId}/gantt?m=${item?.date?.slice(0, 7) ?? ""}`, tag: `reviewed-${itemId}` }, auth.user?.id);
   }
   done(clientId);
 }

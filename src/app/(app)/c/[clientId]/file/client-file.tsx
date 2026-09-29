@@ -304,6 +304,7 @@ export function ClientFile(p: Props) {
                 <div className="grow0"><b className="w500">{e.title}</b><div className="txt">יום {WEEKDAYS[d.getUTCDay()]}</div></div>
                 {p.isStaff && <button className="edit" onClick={() => setEventFor(e)}>עריכה</button>}
               </div>
+              {e.needs_material && <span className="txt w500">{p.isStaff ? "מחכים לחומרים מהלקוח" : "מחכים לחומרים ממך – אפשר לשלוח דרך כפתור הפלוס"}</span>}
               {e.description && <p className="pre">{e.description}</p>}
               <div className="row-gap">
                 {e.link && <a className="edit" href={fixUrl(e.link)} target="_blank" rel="noopener">חומרים לאירוע</a>}
@@ -529,7 +530,7 @@ function EventSheet({ p, event, onClose }: { p: Props; event: ClientEvent | null
   return (
     <Sheet onClose={onClose} label="אירוע" busy={pending || busy}>
       <form className="stack" action={(fd) => start(async () => {
-        await saveEvent(p.clientId, { id: event?.id, date: String(fd.get("date")) || p.today, title: String(fd.get("title") ?? ""), description: String(fd.get("desc") ?? ""), link: String(fd.get("link") ?? "").trim(), images });
+        await saveEvent(p.clientId, { id: event?.id, date: String(fd.get("date")) || p.today, title: String(fd.get("title") ?? ""), description: String(fd.get("desc") ?? ""), link: String(fd.get("link") ?? "").trim(), needs_material: fd.get("needs") === "on", images });
         onClose();
       })}>
         <h2>{event ? "עריכת אירוע" : "אירוע חדש"}</h2>
@@ -537,6 +538,7 @@ function EventSheet({ p, event, onClose }: { p: Props; event: ClientEvent | null
         <label className="field"><span className="label">תאריך</span><input type="date" name="date" defaultValue={event?.date ?? p.today} /></label>
         <label className="field"><span className="label">פרטים והערות</span><textarea name="desc" rows={4} defaultValue={event?.description} placeholder="שעה, מחיר, הרשמה, מה צריך לפרסם" /></label>
         <label className="field"><span className="label">קישור לחומרים</span><input name="link" dir="ltr" defaultValue={event?.link} placeholder="דרייב, קאנבה…" /></label>
+        <label className="chk"><input type="checkbox" name="needs" defaultChecked={event?.needs_material} /> מחכים לחומרים מהלקוח (נשלחת לו תזכורת כמה ימים לפני)</label>
         <div className="field"><span className="label">תמונות לפרסום</span>
           <div className="media-strip">
             {images.map((im) => (

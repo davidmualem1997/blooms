@@ -55,7 +55,7 @@ export async function loadWeek(clients: Client[], today: string): Promise<Agenda
     push(e.date, { kind: "event", title: e.title, sub: name[e.client_id], href: `/c/${e.client_id}/gantt` });
   }
   for (const i of (items.data ?? []) as ContentItem[]) {
-    push(i.date, { kind: i.type, title: i.title, sub: name[i.client_id], href: `/c/${i.client_id}/gantt?m=${i.date.slice(0, 7)}`, done: i.status === "live" });
+    push(i.date, { kind: i.type, title: i.title, sub: name[i.client_id], href: `/c/${i.client_id}/gantt?m=${i.date.slice(0, 7)}`, done: i.status === "live", ...(i.time ? { time: i.time.slice(0, 5) } : {}) });
   }
   const order = { holiday: 0, memorial: 0, deadline: 1, team: 2, meeting: 2, event: 3, post: 4, reel: 4, tiktok: 4 } as const;
   for (const d of days) d.entries.sort((a, b) => order[a.kind] - order[b.kind] || (a.time ?? "").localeCompare(b.time ?? ""));

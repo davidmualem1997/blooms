@@ -43,6 +43,7 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
         media: media.map(({ path, thumb, kind }) => ({ path, thumb, kind })),
         stats: status === "live" ? readStats(form) : it?.stats,
         date: String(form.get("date")) || target.date,
+        time: String(form.get("time") ?? "") || null,
         type,
         status,
         title: String(form.get("title") ?? ""),
@@ -115,7 +116,10 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
           </label>
         </div>
         <input name="title" placeholder="נושא" defaultValue={it?.title ?? target.preset?.title} aria-label="נושא" autoFocus={!it} />
-        <label className="field"><span className="label">תאריך</span><input name="date" type="date" defaultValue={it?.date ?? target.date} /></label>
+        <div className="row-gap">
+          <label className="field"><span className="label">תאריך</span><input name="date" type="date" defaultValue={it?.date ?? target.date} /></label>
+          <label className="field"><span className="label">שעה (לתזכורת)</span><input name="time" type="time" defaultValue={it?.time?.slice(0, 5) ?? ""} /></label>
+        </div>
         <div className="field"><span className="label">סוג</span>
           <div className="seg">{TYPES.map((t) => <button type="button" key={t} aria-pressed={type === t} onClick={() => setType(t)}>{TYPE_LABEL[t]}</button>)}</div>
         </div>

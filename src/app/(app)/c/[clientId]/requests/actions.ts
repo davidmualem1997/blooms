@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { previewImageFor } from "@/lib/link-preview";
 import { notifyLater } from "@/lib/push";
-import { MESSAGE_LABEL, type Attachment, MessageKind, RequestStatus } from "@/lib/types";
+import type { Attachment, MessageKind, RequestStatus } from "@/lib/types";
 
 const excerpt = (s: string, n = 90) => (s.trim().length > n ? s.trim().slice(0, n) + "…" : s.trim());
 
@@ -23,7 +23,8 @@ export async function sendRequest(clientId: string, kind: MessageKind, body: str
     status: kind === "call" ? "to_meeting" : "new",
   });
   if (error) return { error: "הפנייה לא נשלחה. נסו שוב." };
-  notifyLater({ clientId, who: "staff" }, { body: `${MESSAGE_LABEL[kind]} חדש/ה: ${excerpt(body)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
+  if (kind === "idea") notifyLater({ clientId, who: "team" }, { body: `רעיון חדש: ${excerpt(body)}`, url: `/c/${clientId}/inspiration`, tag: `idea-${clientId}` }, auth.user?.id);
+  else notifyLater({ clientId, who: "manager" }, { body: `${kind === "fix" ? "בקשת תיקון" : "פנייה חדשה"}: ${excerpt(body)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
   if (kind === "idea") {
     const url = body.match(/https?:\/\/\S+/)?.[0] ?? "";
     const title = body.replace(url, "").trim() || "רעיון מהלקוח";
@@ -55,7 +56,8 @@ export async function updateRequest(clientId: string, id: string, patch: { statu
   if (Object.keys(update).length) {
     const { data: msg } = await supabase.from("messages").update(update).eq("id", id).select("created_by, body").single();
     // מי ששלח את הפנייה מקבל עדכון כשעונים לו או כשהפנייה טופלה
-    const text = patch.reply?.trim() ? `הצוות ענה: ${excerpt(patch.reply)}` : patch.status === "done" ? `הפנייה טופלה ✓ ${excerpt(msg?.body ?? "", 60)}` : "";
+    const about = excerpt(msg?.body ?? "", 40);
+    const text = patch.reply?.trim() || patch.status === "done" || patch.status === "to_meeting" ? `הצוות עדכן את הפנייה שלך לגבי "${about}"` : "";
     if (msg?.created_by && text) notifyLater({ userIds: [msg.created_by], clientId }, { body: text, url: `/c/${clientId}/requests`, tag: `reply-${id}` }, auth.user?.id);
   }
   done(clientId);

@@ -26,16 +26,13 @@ export async function addTask(clientId: string, title: string, assigneeId: strin
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   await supabase.from("tasks").insert({ client_id: clientId, title: title.trim(), assignee_id: assigneeId, created_by: auth.user?.id });
-  notifyLater({ userIds: [assigneeId], clientId }, { body: `משימה חדשה בשבילך: ${title.trim()}`, url: `/c/${clientId}/file`, tag: `task-${clientId}` }, auth.user?.id);
   done(clientId);
   revalidatePath("/");
 }
 
 export async function updateTask(clientId: string, id: string, patch: { done?: boolean; assignee_id?: string }) {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const { data: task } = await supabase.from("tasks").update(patch).eq("id", id).select("title").single();
-  if (patch.assignee_id && task) notifyLater({ userIds: [patch.assignee_id], clientId }, { body: `משימה חדשה בשבילך: ${task.title}`, url: `/c/${clientId}/file`, tag: `task-${clientId}` }, auth.user?.id);
+  await supabase.from("tasks").update(patch).eq("id", id);
   done(clientId);
   revalidatePath("/");
 }
@@ -68,7 +65,11 @@ export async function setMeetingTopics(clientId: string, id: string, topics: str
 export async function saveSummary(clientId: string, id: string, summary: string, resolveMessageIds: string[]) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  await supabase.from("meetings").update({ summary }).eq("id", id);
+  const { data: meeting } = await supabase.from("meetings").update({ summary }).eq("id", id).select("starts_at").single();
+  if (summary.trim() && meeting) {
+    const day = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric" }).format(new Date(meeting.starts_at));
+    notifyLater({ clientId, who: "client" }, { body: `סיכום הפגישה מ־${day} זמין עכשיו`, url: `/c/${clientId}/file`, tag: `summary-${id}` }, auth.user?.id, `summary:${id}`);
+  }
   if (resolveMessageIds.length) {
     await supabase.from("messages").update({ status: "done", resolved_by: auth.user?.id }).in("id", resolveMessageIds);
   }
@@ -77,10 +78,10 @@ export async function saveSummary(clientId: string, id: string, summary: string,
 }
 
 // אירועים קרובים עם תמונות לפרסום (נשמרים באותה טבלה של האירועים בלוח השנה)
-export async function saveEvent(clientId: string, input: { id?: string; date: string; title: string; description: string; link: string; images: { path: string; thumb: string | null }[] }) {
+export async function saveEvent(clientId: string, input: { id?: string; date: string; title: string; description: string; link: string; needs_material?: boolean; images: { path: string; thumb: string | null }[] }) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  const row = { client_id: clientId, date: input.date, title: input.title.trim() || "אירוע", description: input.description, link: input.link, images: input.images };
+  const row = { client_id: clientId, date: input.date, title: input.title.trim() || "אירוע", description: input.description, link: input.link, images: input.images, needs_material: !!input.needs_material };
   if (input.id) await supabase.from("client_events").update(row).eq("id", input.id);
   else await supabase.from("client_events").insert({ ...row, created_by: auth.user?.id });
   done(clientId);
