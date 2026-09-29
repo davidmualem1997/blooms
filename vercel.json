@@ -1,11 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/trends",
-      "schedule": "0 4 * * 0"
-    }
-  ],
-  "regions": [
-    "dub1"
-  ]
-}
+{"crons":[{"path":"/api/cron/trends","schedule":"0 4 * * 0"},{"path":"/api/cron/morning","schedule":"0 5 * * *"}],"regions":["dub1"]}

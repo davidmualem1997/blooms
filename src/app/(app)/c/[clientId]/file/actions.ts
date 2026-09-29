@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { israelToUTC } from "@/lib/dates";
+import { notifyLater } from "@/lib/push";
 import type { Brand } from "@/lib/types";
 
 // תיק הלקוח: צוות ומשתמשי הלקוח יכולים לערוך (RLS + טריגר guard_client_update);
@@ -25,13 +26,16 @@ export async function addTask(clientId: string, title: string, assigneeId: strin
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   await supabase.from("tasks").insert({ client_id: clientId, title: title.trim(), assignee_id: assigneeId, created_by: auth.user?.id });
+  notifyLater({ userIds: [assigneeId], clientId }, { body: `משימה חדשה בשבילך: ${title.trim()}`, url: `/c/${clientId}/file`, tag: `task-${clientId}` }, auth.user?.id);
   done(clientId);
   revalidatePath("/");
 }
 
 export async function updateTask(clientId: string, id: string, patch: { done?: boolean; assignee_id?: string }) {
   const supabase = await createClient();
-  await supabase.from("tasks").update(patch).eq("id", id);
+  const { data: auth } = await supabase.auth.getUser();
+  const { data: task } = await supabase.from("tasks").update(patch).eq("id", id).select("title").single();
+  if (patch.assignee_id && task) notifyLater({ userIds: [patch.assignee_id], clientId }, { body: `משימה חדשה בשבילך: ${task.title}`, url: `/c/${clientId}/file`, tag: `task-${clientId}` }, auth.user?.id);
   done(clientId);
   revalidatePath("/");
 }

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/api/cron", "/privacy", "/manifest.webmanifest", "/icons"];
+const PUBLIC_PATHS = ["/login", "/auth", "/api/cron", "/privacy", "/manifest.webmanifest", "/icons", "/sw.js"];
 
 // מרענן את סשן ההתחברות בכל בקשה ומפנה משתמש לא מחובר למסך הכניסה
 export async function updateSession(request: NextRequest) {

@@ -1,6 +1,7 @@
 import { getContext } from "@/lib/context";
 import { avatarSrc } from "@/lib/types";
 import { ProfileForm } from "./profile-form";
+import { PushToggle } from "./push-toggle";
 
 export const metadata = { title: "הפרופיל שלי · BLOOMS" };
 
@@ -11,6 +12,7 @@ export default async function MePage() {
     <div className="sec">
       <h1 className="display-title">הפרופיל שלי</h1>
       <ProfileForm userId={ctx.userId} name={ctx.profile.full_name} email={ctx.profile.email ?? ""} avatar={avatarSrc(ctx.profile)} roleLabel={roleLabel} />
+      <PushToggle />
     </div>
   );
 }

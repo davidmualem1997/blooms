@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
-import { israelToUTC } from "@/lib/dates";
+import { israelToUTC, shortDate } from "@/lib/dates";
+import { notifyLater } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { generateWeeklyTrends } from "@/lib/trends";
 
@@ -18,6 +19,7 @@ export async function scheduleTeamMeeting(input: { date: string; time: string; k
     studio_id: ctx.studioId, starts_at: israelToUTC(input.date, input.time), kind: input.kind, location: input.location,
     attendee_ids: input.attendees, topics: input.topics.filter(Boolean).map((text) => ({ text, done: false })), created_by: ctx.userId,
   });
+  notifyLater({ userIds: input.attendees }, { title: "פגישת צוות", body: `נקבעה פגישת צוות ב־${shortDate(input.date)} בשעה ${input.time}${input.location ? ` · ${input.location}` : ""}`, url: "/", tag: "team-meeting" }, ctx.userId);
   revalidatePath("/");
 }
 

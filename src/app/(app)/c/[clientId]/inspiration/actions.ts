@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { previewImageFor } from "@/lib/link-preview";
+import { notifyLater } from "@/lib/push";
+import { MESSAGE_LABEL } from "@/lib/types";
 
 // רעיונות, הודעות ואישורים. לקוח יכול להוסיף רק רעיון מסוג "רעיון לקוח" (נאכף ב-RLS)
 
@@ -58,12 +60,19 @@ export async function sendMessage(clientId: string, kind: "request" | "fix" | "c
   const { data: auth } = await supabase.auth.getUser();
   const { error } = await supabase.from("messages").insert({ client_id: clientId, kind, body: body.trim(), created_by: auth.user?.id });
   if (error) return { error: "ההודעה לא נשלחה. נסו שוב." };
+  notifyLater({ clientId, who: "staff" }, { body: `${MESSAGE_LABEL[kind]} חדש/ה: ${body.trim().slice(0, 90)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
   done(clientId);
   return {};
 }
 
 export async function reviewItem(clientId: string, itemId: string, approve: boolean, note = "") {
   const supabase = await createClient();
-  await supabase.rpc("review_item", { item_id: itemId, approve, note });
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.rpc("review_item", { item_id: itemId, approve, note });
+  if (!error) {
+    const { data: item } = await supabase.from("content_items").select("title, date").eq("id", itemId).single();
+    const body = approve ? `אישר/ה ✓ "${item?.title ?? ""}"` : `ביקש/ה תיקון ב"${item?.title ?? ""}"${note.trim() ? `: ${note.trim().slice(0, 80)}` : ""}`;
+    notifyLater({ clientId, who: "staff" }, { body, url: `/c/${clientId}/gantt?m=${item?.date?.slice(0, 7) ?? ""}`, tag: `reviewed-${itemId}` }, auth.user?.id);
+  }
   done(clientId);
 }
