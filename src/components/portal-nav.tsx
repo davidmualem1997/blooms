@@ -18,11 +18,11 @@ export function PortalNav({ clientId, isClient }: { clientId: string; isClient: 
   const active = tabs.find((t) => (t.href ? ("match" in t && t.match ? t.match : [t.href]).some((h) => pathname.startsWith(base + h)) : pathname === base));
   return (
     <>
-      <div className="navlabel">{active?.label}</div>
       <nav className="nav" aria-label="מסכים">
         {tabs.map((t) => (
           <Link key={t.label} href={base + t.href} aria-label={t.label} aria-current={active === t ? "page" : undefined}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{t.icon}</svg>
+            <span>{t.label}</span>
           </Link>
         ))}
       </nav>
