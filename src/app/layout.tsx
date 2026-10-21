@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
+import { NativeBridge } from "@/components/native-bridge";
 
 const heebo = Heebo({ subsets: ["hebrew", "latin"], weight: ["300", "400", "500", "600", "700"], variable: "--font-heebo" });
 
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="he" dir="rtl" className={heebo.variable}>
-      <body>{children}</body>
+      <body>
+        <NativeBridge />
+        {children}
+      </body>
     </html>
   );
 }
