@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apnsConfigured, sendApns, type ApnsEnv } from "@/lib/apns";
 
 // העיקרון: פוש רק כשיש פעולה לעשות, שינוי משמעותי או דדליין שמתקרב. כל השאר נשאר בתוך האפליקציה.
 
@@ -20,9 +21,9 @@ export function pushConfigured() {
 // שולח התראה לכל המכשירים של המשתמשים. מכשיר שביטל את ההרשמה (404/410) נמחק
 export async function sendPush(userIds: string[], payload: PushPayload) {
   const ids = [...new Set(userIds)].filter(Boolean);
-  if (!ids.length || !pushConfigured()) return 0;
+  if (!ids.length || !process.env.SUPABASE_SECRET_KEY?.trim()) return 0;
   const admin = createAdminClient();
-  const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").in("user_id", ids);
+  const { data: subs } = pushConfigured() ? await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").in("user_id", ids) : { data: [] };
   let sent = 0;
   const gone: string[] = [];
   await Promise.all((subs ?? []).map(async (s) => {
@@ -36,6 +37,19 @@ export async function sendPush(userIds: string[], payload: PushPayload) {
     }
   }));
   if (gone.length) await admin.from("push_subscriptions").delete().in("id", gone);
+
+  // אפליקציית האייפון: התראות של אפל (APNs)
+  if (apnsConfigured()) {
+    const { data: tokens } = await admin.from("native_push_tokens").select("token, env").in("user_id", ids).eq("platform", "ios");
+    if (tokens?.length) {
+      const results = await sendApns(tokens as { token: string; env: ApnsEnv | null }[], payload);
+      sent += results.filter((r) => r.ok).length;
+      const deadTokens = results.filter((r) => r.gone).map((r) => r.token);
+      if (deadTokens.length) await admin.from("native_push_tokens").delete().in("token", deadTokens);
+      // הסביבה שעבדה נשמרת, כדי לשלוח ישר אליה בפעם הבאה
+      for (const r of results.filter((x) => x.ok && x.env)) await admin.from("native_push_tokens").update({ env: r.env }).eq("token", r.token);
+    }
+  }
   return sent;
 }
 
@@ -68,7 +82,7 @@ type Target = { clientId: string; who: Audience } | { userIds: string[]; clientI
 export function notifyLater(target: Target, payload: Omit<PushPayload, "title"> & { title?: string }, actorId?: string | null, once?: string) {
   after(async () => {
     try {
-      if (!pushConfigured()) return;
+      if (!pushConfigured() && !apnsConfigured()) return;
       const admin = createAdminClient();
       const ids = "userIds" in target ? target.userIds : await recipients(target.clientId, target.who);
       const targets = ids.filter((id) => id !== actorId);

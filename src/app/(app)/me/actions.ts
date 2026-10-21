@@ -41,3 +41,19 @@ export async function testPush(): Promise<{ sent: number }> {
   const sent = await sendPush([data.user.id], { title: "BLOOMS", body: "ההתראות עובדות 🌸", url: "/me", tag: "test" });
   return { sent };
 }
+
+// ---- אפליקציית האייפון: token להתראות של אפל
+export async function saveNativeToken(token: string, platform: "ios" | "android" = "ios"): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user || !/^[0-9a-f]{32,200}$/i.test(token)) return { error: "invalid" };
+  // אותו מכשיר שהיה רשום למשתמש אחר (התנתקות והתחברות בחשבון אחר) עובר למשתמש הנוכחי
+  if (process.env.SUPABASE_SECRET_KEY) await createAdminClient().from("native_push_tokens").delete().eq("token", token).neq("user_id", data.user.id);
+  const { error } = await supabase.from("native_push_tokens").upsert({ user_id: data.user.id, token, platform, updated_at: new Date().toISOString() }, { onConflict: "token" });
+  return error ? { error: error.message } : {};
+}
+
+export async function removeNativeToken(token: string) {
+  const supabase = await createClient();
+  await supabase.from("native_push_tokens").delete().eq("token", token);
+}

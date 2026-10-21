@@ -23,6 +23,8 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: { launchShowDuration: 600, backgroundColor: "#f5f5f7", showSpinner: false },
     StatusBar: { overlaysWebView: true, style: "DEFAULT" },
+    // גם כשהאפליקציה פתוחה – מציגים את ההתראה כבאנר
+    PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
   },
 };
 

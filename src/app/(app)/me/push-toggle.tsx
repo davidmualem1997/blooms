@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { subscribePush, testPush, unsubscribePush } from "./actions";
+import { isNativeApp } from "@/lib/native";
+import { enableNativePush, nativePushState, storedNativeToken } from "@/lib/native-push";
+import { removeNativeToken, subscribePush, testPush, unsubscribePush } from "./actions";
 
 type State = "loading" | "unsupported" | "ios-install" | "denied" | "off" | "on";
 
@@ -22,6 +24,11 @@ export function PushToggle() {
 
   useEffect(() => {
     (async () => {
+      // באפליקציית האייפון: התראות של אפל במקום התראות אתר
+      if (isNativeApp()) {
+        const st = await nativePushState();
+        return setState(st === "denied" ? "denied" : st === "granted" && storedNativeToken() ? "on" : "off");
+      }
       const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
       const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -38,6 +45,12 @@ export function PushToggle() {
 
   const enable = () => start(async () => {
     setMsg("");
+    if (isNativeApp()) {
+      const st = await enableNativePush().catch(() => "prompt" as const);
+      setState(st === "granted" ? "on" : st === "denied" ? "denied" : "off");
+      if (st === "granted") setMsg("ההתראות הופעלו באייפון הזה");
+      return;
+    }
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return setState(permission === "denied" ? "denied" : "off");
@@ -54,6 +67,13 @@ export function PushToggle() {
   });
 
   const disable = () => start(async () => {
+    if (isNativeApp()) {
+      const t = storedNativeToken();
+      if (t) await removeNativeToken(t);
+      try { localStorage.removeItem("blooms-native-token"); } catch {}
+      setState("off");
+      return;
+    }
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
     if (sub) { await unsubscribePush(sub.endpoint); await sub.unsubscribe(); }
@@ -75,7 +95,7 @@ export function PushToggle() {
         <p className="txt">כדי לקבל התראות באייפון: לוחצים על כפתור השיתוף בספארי ← &quot;הוספה למסך הבית&quot;, ופותחים את BLOOMS מהאייקון.</p>
       )}
       {state === "unsupported" && <p className="txt">הדפדפן הזה לא תומך בהתראות.</p>}
-      {state === "denied" && <p className="txt">ההתראות חסומות. אפשר להפעיל אותן בהגדרות הטלפון ← התראות ← BLOOMS.</p>}
+      {state === "denied" && <p className="txt">ההתראות חסומות. אפשר להפעיל אותן בהגדרות הטלפון ← BLOOMS ← עדכונים (התראות).</p>}
       {state === "off" && (
         <>
           <p className="txt">נעדכן כשלקוח שולח פנייה, כשתוכן מחכה לאישור, ותזכורת בכל בוקר על מה שעולה היום.</p>
