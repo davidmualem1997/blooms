@@ -62,17 +62,17 @@ export function GanttBoard(p: Props) {
                 aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
                 <span className="cnum num">{Number(d.slice(8))}</span>
                 {p.special.filter((e) => e.date === d).map((e) => (
-                  <span key={e.title} className="ctag gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{e.title}</span></span>
+                  <span key={e.title} className="ctg gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{e.title}</span></span>
                 ))}
                 {p.custom.filter((e) => e.date === d).map((e) => (
-                  <span key={e.id} className="ctag gray"><ContentIcon kind="event" size={10} /><span>{e.title}</span></span>
+                  <span key={e.id} className="ctg gray"><ContentIcon kind="event" size={10} /><span>{e.title}</span></span>
                 ))}
                 {its.map((i) => (
-                  <span key={i.id} className={`ctag ${i.type === "tiktok" ? "pink" : "yellow"}${i.status === "live" ? " done" : ""}`} title={`${TYPE_LABEL[i.type]} · ${i.title} · ${STATUS_LABEL[i.status]}`}>
+                  <span key={i.id} className={`ctg ${i.type === "tiktok" ? "pink" : "yellow"}${i.status === "live" ? " done" : ""}`} title={`${TYPE_LABEL[i.type]} · ${i.title} · ${STATUS_LABEL[i.status]}`}>
                     <ContentIcon kind={i.type} size={10} /><span>{i.title}</span>
                   </span>
                 ))}
-                {ss.length > 0 && <span className="ctag story"><ContentIcon kind="story" size={10} /><span>{ss.length === 1 ? ss[0].title : `${ss.length} סטוריז`}</span></span>}
+                {ss.length > 0 && <span className="ctg st"><ContentIcon kind="story" size={10} /><span>{ss.length === 1 ? ss[0].title : `${ss.length} סטוריז`}</span></span>}
               </button>
             );
           })}
