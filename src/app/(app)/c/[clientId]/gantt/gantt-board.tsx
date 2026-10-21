@@ -6,8 +6,9 @@ import { useState, useTransition } from "react";
 import { ItemEditor, type EditorTarget } from "@/components/item-editor";
 import { MonthList, type FocusItem } from "@/components/month-list";
 import { Sheet } from "@/components/sheet";
+import { ContentIcon } from "@/components/content-icon";
 import { MONTHS, WEEKDAYS, parseISODate } from "@/lib/dates";
-import { STATUS_LABEL, TYPE_LABEL, type ClientEvent, type ContentItem, type ContentStatus, type OneOffStory, type RecurringStory } from "@/lib/types";
+import { STATUS_LABEL, TYPE_LABEL, type ClientEvent, type ContentItem, type OneOffStory, type RecurringStory } from "@/lib/types";
 import type { CalEvent } from "@/lib/holidays";
 import { addClientEvent, addOneOff, addRecurring, deleteClientEvent, deleteOneOff, deleteRecurring, setRecurringDays, setStoryDoneOn } from "./actions";
 
@@ -16,6 +17,8 @@ type Props = {
   items: ContentItem[]; recurring: RecurringStory[]; oneOff: OneOffStory[]; checks: string[]; focus: FocusItem[];
   special: CalEvent[]; custom: ClientEvent[];
   openItem?: string; // מהתראה: פותח את הפריט ישר
+  title: string; // שם החודש
+  nav: React.ReactNode; // חצים למעבר בין חודשים
 };
 
 const WD_SHORT = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
@@ -41,39 +44,49 @@ export function GanttBoard(p: Props) {
 
   return (
     <>
-      <MonthList clientId={p.clientId} month={p.month} kind="content" items={p.focus} canEdit={p.canEdit}
-        title="דגשים לחודש" placeholder="דגש חדש לחודש" />
-
-      <div className="cal">
-        {WEEKDAYS.map((w) => <div key={w} className="wd">{w.slice(0, 3)}</div>)}
-        {Array.from({ length: first.getUTCDay() }, (_, i) => <div key={`b${i}`} className="cell blank" />)}
-        {dates.map((d) => {
-          const its = p.items.filter((i) => i.date === d);
-          const ss = storiesOn(d);
-          return (
-            <button key={d} className={`cell${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}`} onClick={() => setDay(d)}
-              aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
-              <span className="d num">{Number(d.slice(8))}</span>
-              {p.special.filter((e) => e.date === d).map((e) => <span key={e.title} className={`hday ${e.kind}`}>{e.title}</span>)}
-              {p.custom.filter((e) => e.date === d).map((e) => <span key={e.id} className="hday custom">★ {e.title}</span>)}
-              {its.map((i) => (
-                <span key={i.id} className={`ev${i.type === "tiktok" ? " tt" : ""}`} style={{ ["--c" as string]: `var(--s-${i.status})` }}>
-                  <b>{TYPE_LABEL[i.type]}</b> – {i.title}
-                </span>
-              ))}
-              {ss.map((x) => <span key={x.ref} className={`stl${x.oneOffId ? " one" : ""}`}>סטורי · {x.title}</span>)}
-            </button>
-          );
-        })}
+      {/* לוח החודש: משטח לבן רציף אחד, בלי רווחים בין הימים – רק קו דק בין השבועות */}
+      <div className="calcard">
+        <div className="calhead">
+          <h2>{p.title}</h2>
+          <div className="calnavs">{p.nav}</div>
+        </div>
+        <div className="calgrid">
+          {WEEKDAYS.map((w) => <div key={w} className="calwd">{w.slice(0, 3)}</div>)}
+          {Array.from({ length: first.getUTCDay() }, (_, i) => <div key={`b${i}`} className="calday blank" />)}
+          {dates.map((d) => {
+            const its = p.items.filter((i) => i.date === d);
+            const ss = storiesOn(d);
+            const wd = parseISODate(d).getUTCDay();
+            return (
+              <button key={d} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}`} onClick={() => setDay(d)}
+                aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
+                <span className="cnum num">{Number(d.slice(8))}</span>
+                {p.special.filter((e) => e.date === d).map((e) => (
+                  <span key={e.title} className="ctag gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{e.title}</span></span>
+                ))}
+                {p.custom.filter((e) => e.date === d).map((e) => (
+                  <span key={e.id} className="ctag gray"><ContentIcon kind="event" size={10} /><span>{e.title}</span></span>
+                ))}
+                {its.map((i) => (
+                  <span key={i.id} className={`ctag ${i.type === "tiktok" ? "pink" : "yellow"}${i.status === "live" ? " done" : ""}`} title={`${TYPE_LABEL[i.type]} · ${i.title} · ${STATUS_LABEL[i.status]}`}>
+                    <ContentIcon kind={i.type} size={10} /><span>{i.title}</span>
+                  </span>
+                ))}
+                {ss.length > 0 && <span className="ctag story"><ContentIcon kind="story" size={10} /><span>{ss.length === 1 ? ss[0].title : `${ss.length} סטוריז`}</span></span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="legend">
-        {(Object.keys(STATUS_LABEL) as ContentStatus[]).map((s) => (
-          <span key={s}><span className="sdot" style={{ ["--c" as string]: `var(--s-${s})` }} />{STATUS_LABEL[s]}</span>
-        ))}
-        <span><span className="hsw ig" />אינסטגרם</span>
-        <span><span className="hsw tt" />טיקטוק</span>
-        <span><span className="hsw ev" />אירועים ומועדים</span>
+        <span><span className="hsw ig" /><ContentIcon kind="post" size={12} /> אינסטגרם</span>
+        <span><span className="hsw tt" /><ContentIcon kind="tiktok" size={12} /> טיקטוק</span>
+        <span><ContentIcon kind="story" size={12} /> סטוריז</span>
+        <span><span className="hsw ev" /><ContentIcon kind="event" size={12} /> אירועים ומועדים</span>
       </div>
+
+      <MonthList clientId={p.clientId} month={p.month} kind="content" items={p.focus} canEdit={p.canEdit}
+        title="דגשים לחודש" placeholder="דגש חדש לחודש" />
 
       <section className="sec">
         <div className="label dotted">סטוריז קבועים</div>

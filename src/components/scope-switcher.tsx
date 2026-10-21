@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Avatar } from "./avatar";
+import { Sheet } from "./sheet";
 
 export type ScopeOption = { id: string; name: string; color: string; sub: string; logo: string | null; manager: string };
 
@@ -40,9 +41,7 @@ export function ScopeSwitcher({ options, allowAll, isClient, isOwner, me }: {
       <Link href="/me" className="combo-me" aria-label="הפרופיל שלי"><Avatar src={me.avatar} name={me.name} size={34} /></Link>
 
       {open && (
-        <div className="scrim" onClick={(e) => e.target === e.currentTarget && setOpen(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label="בחירת פורטל">
-            <div className="grab" />
+        <Sheet onClose={() => setOpen(false)} label="בחירת פורטל">
             <h2>לאן נכנסים?</h2>
             {current && !isClient && <span className="txt">עכשיו: {current.name} · מנהל לקוח: {current.manager}</span>}
             <div className="note soft">
@@ -68,8 +67,7 @@ export function ScopeSwitcher({ options, allowAll, isClient, isOwner, me }: {
               ) : <span />}
               <Link className="edit" href="/me" onClick={() => setOpen(false)}>הפרופיל שלי</Link>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

@@ -4,21 +4,21 @@
    עם הנגיעה של אפליקציות Meta: שחור-לבן חד, צבע מבטא אחד (כחול) ומספרים בולטים. */
 :root {
   /* משטחים – systemGroupedBackground / secondarySystemGroupedBackground */
-  --page: #f2f2f7;
+  --page: #f5f5f7;                         /* הרקע של apple.com */
   --surface: #ffffff;
   --soft: rgba(118, 118, 128, 0.12);      /* tertiarySystemFill – שדות, צ'יפים */
-  --ink: #000000;                          /* label */
-  --sub: rgba(60, 60, 67, 0.72);           /* secondaryLabel (מעט חזק יותר לעברית) */
-  --muted: rgba(60, 60, 67, 0.5);          /* tertiaryLabel */
-  --sep: rgba(60, 60, 67, 0.18);           /* separator – קו שיער */
-  --accent: #0866ff;                       /* הכחול של Meta */
-  --accent-soft: rgba(8, 102, 255, 0.1);
+  --ink: #1d1d1f;                          /* הטקסט של apple.com */
+  --sub: #6e6e73;
+  --muted: #86868b;
+  --sep: rgba(0, 0, 0, 0.08);              /* קו שיער */
+  --accent: #0071e3;                       /* הכחול של Apple – רק לקישורים ולהדגשות */
+  --accent-soft: rgba(0, 113, 227, 0.1);
   --on-accent: #ffffff;
-  --dot: #0866ff;
-  --glass: rgba(255, 255, 255, 0.72);
+  --dot: #0071e3;
+  --glass: rgba(250, 250, 252, 0.78);
   --glass-edge: rgba(255, 255, 255, 0.6);
-  --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-float: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 12px 40px rgba(0, 0, 0, 0.1);
   /* גוונים עדינים במקום פסטלים – לסטטוסים ולסוגי תוכן */
   --peach: #fff1e0;
   --sky: #e6f0ff;
@@ -37,8 +37,8 @@
   --yes: #248a3d;
   --no: #ff3b30;
   --tt: #0e9f9a;
-  --r-card: 22px;
-  --r-group: 20px;
+  --r-card: 26px;
+  --r-group: 24px;
   --ease: cubic-bezier(0.25, 1, 0.5, 1);
 }
 @media (prefers-color-scheme: dark) {
@@ -47,13 +47,13 @@
     --page: #000000;
     --surface: #1c1c1e;
     --soft: rgba(118, 118, 128, 0.24);
-    --ink: #ffffff;
+    --sep: rgba(255, 255, 255, 0.1);
     --sub: rgba(235, 235, 245, 0.72);
     --muted: rgba(235, 235, 245, 0.45);
-    --sep: rgba(84, 84, 88, 0.6);
-    --accent: #3a8bff;
-    --accent-soft: rgba(58, 139, 255, 0.18);
-    --dot: #3a8bff;
+    --accent: #2997ff;
+    --accent-soft: rgba(41, 151, 255, 0.18);
+    --dot: #2997ff;
+    --ink: #f5f5f7;
     --glass: rgba(30, 30, 32, 0.7);
     --glass-edge: rgba(255, 255, 255, 0.08);
     --shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.06);
@@ -806,13 +806,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
-h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
 ::selection { background: var(--accent-soft); }
 
 /* Large Title – כמו בכותרות של iOS */
 .display-title, .phead h1, .page-title {
-  font-size: clamp(30px, 8.6vw, 38px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; margin: 4px 0 2px;
+  font-size: clamp(32px, 9vw, 40px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 6px 0 2px;
 }
 .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
 .hi { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
@@ -1021,3 +1021,104 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .welcome-mark p { margin: 0; font-size: 19px; line-height: 1.4; color: var(--sub); }
 .welcome-actions { width: 100%; max-width: 380px; display: grid; gap: 14px; justify-items: center; text-align: center; }
 .welcome-actions .pbtn { width: 100%; padding-block: 15px; }
+
+/* =====================================================================
+   BLOOMS 2.1 – עוד יותר נקי ואפלי: מונוכרום, כחול רק לקישורים
+   ===================================================================== */
+.pbtn, .send, .fab, .fab-plus, .send-team { background: var(--ink); color: var(--page); }
+.fab, .fab-plus, .send { box-shadow: var(--shadow-float); }
+.tick[aria-pressed="true"], .task .box[aria-pressed="true"], .days button[aria-pressed="true"], .schip[aria-pressed="true"] i, .story-done {
+  background: var(--ink); color: var(--page);
+}
+.cell.today .d, .wkday.now, .sday[aria-selected="true"] { background: var(--ink); color: var(--page); }
+.sday[aria-selected="true"] .snum { color: var(--page); }
+.mhead a { color: var(--ink); }
+.needs { box-shadow: var(--shadow); }
+.lchart .line { stroke: var(--ink); }
+.lchart .pt { fill: var(--ink); }
+
+/* ---------- סרגל לשוניות: מגש זכוכית, הלשונית הפעילה = גלולה לבנה עם שם ---------- */
+.nav { padding: 5px; gap: 0; }
+.nav a { min-width: 48px; height: 48px; padding-inline: 13px; display: inline-flex; flex-direction: row; align-items: center; gap: 7px; color: var(--sub); }
+.nav a svg { width: 22px; height: 22px; }
+.nav a span { display: none; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+.nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06); }
+.nav a[aria-current="page"] span { display: inline; }
+
+/* ---------- לוח חודשי רציף ---------- */
+.calcard { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 16px 0 4px; margin-top: 14px; overflow: hidden; }
+.calhead { display: flex; justify-content: space-between; align-items: center; padding: 0 18px 14px; }
+.calhead h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.calnavs { display: flex; gap: 6px; }
+.calnav { height: 36px; min-width: 36px; padding-inline: 10px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; color: var(--ink); font-size: 14px; font-weight: 500; }
+.calnav:active { transform: scale(0.94); }
+.calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calwd { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 8px; }
+.calday {
+  min-height: 104px; min-width: 0; padding: 6px 3px 8px; border-top: 0.5px solid var(--sep);
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; text-align: start; background: none;
+  transition: background 0.2s var(--ease);
+}
+.calday.blank { border-top: 0.5px solid var(--sep); }
+button.calday:active { background: var(--soft); }
+.cnum { align-self: center; min-width: 26px; height: 26px; padding-inline: 4px; border-radius: 99px; display: grid; place-items: center; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+.calday.sat .cnum { color: var(--no); }
+.calday.past .cnum { color: var(--muted); }
+.calday.today .cnum { background: var(--ink); color: var(--page); font-weight: 600; }
+.calday.today { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.ctag {
+  display: flex; align-items: center; gap: 3px; min-width: 0; font-size: 10.5px; line-height: 1.3; font-weight: 500;
+  border-radius: 5px; padding: 2px 4px; color: var(--ink);
+}
+.ctag > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ctag .cicon { flex: none; opacity: 0.75; }
+.ctag.yellow { background: var(--yellow); }
+.ctag.pink { background: var(--pink); }
+.ctag.gray { background: var(--gray); color: var(--sub); }
+.ctag.story { background: none; color: var(--sub); padding-inline: 2px; }
+.ctag.done { opacity: 0.45; }
+.legend .cicon { vertical-align: -2px; }
+@media (max-width: 540px) { .calday { min-height: 84px; padding-inline: 2px; } .ctag { font-size: 9.5px; padding: 1px 3px; } .ctag .cicon { display: none; } }
+
+/* ---------- לוח שבועי בדאשבורד – אותה שפה ---------- */
+.wcal { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow); gap: 0; padding: 10px 2px 8px; margin-top: 8px; }
+.wcal .cell { background: none; box-shadow: none; border-radius: 0; padding: 4px 3px; gap: 3px; min-height: 130px; }
+.wcal .cell + .cell { border-inline-start: 0.5px solid var(--sep); }
+.wcal .cell.past { opacity: 1; }
+.wcal .cell.past .cnum { color: var(--muted); }
+.wcal .cell.today .cnum { background: var(--ink); color: var(--page); font-weight: 600; }
+.wcal .wd-in { text-align: center; font-size: 11px; color: var(--muted); }
+.wcal .cell .d { display: none; }
+.went { display: flex; align-items: flex-start; gap: 3px; border-radius: 5px; font-weight: 500; -webkit-line-clamp: unset; }
+.went .cicon { flex: none; margin-top: 2px; opacity: 0.75; }
+.went .wtext { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.went.memorial, .went.holiday, .went.event { background: var(--gray); color: var(--sub); }
+.went.team, .went.meeting { background: var(--mint); }
+.wcal.compact .cell { min-height: 92px; }
+.wcal.compact .went .wtext { -webkit-line-clamp: 2; }
+@media (max-width: 540px) { .wcal .cell { min-height: 110px; } .went { font-size: 10px; padding: 2px 3px; } .went .cicon { display: none; } }
+
+/* ---------- 2.2: תגיות דקות בתוך היום, סרגל לשוניות עם אייקונים בלבד ---------- */
+.ctag { font-size: 10px; line-height: 14px; height: 16px; padding: 1px 4px; border-radius: 4px; gap: 3px; font-weight: 500; }
+.ctag .cicon { width: 9px; height: 9px; }
+.ctag.story { height: 14px; padding: 0 3px; font-weight: 400; }
+.calday { gap: 2px; }
+.went { font-size: 10.5px; line-height: 1.3; padding: 1px 4px; border-radius: 4px; }
+@media (max-width: 540px) { .ctag { font-size: 9px; height: 14px; line-height: 12px; padding: 1px 3px; } }
+
+.nav a { padding-inline: 0; width: 52px; justify-content: center; }
+.nav a span, .nav a[aria-current="page"] span { display: none; }
+
+/* ---------- חלוניות: ידית + כפתור סגירה קבועים למעלה ---------- */
+.sheet { position: relative; overscroll-behavior: contain; will-change: transform; }
+.sheet-top {
+  position: sticky; top: -10px; z-index: 2; margin: -8px -20px 0; padding: 8px 20px 4px;
+  display: grid; justify-items: center; background: var(--surface); cursor: grab; touch-action: none;
+}
+.sheet-top .grab { width: 36px; height: 5px; border-radius: 99px; background: var(--sep); margin-top: 2px; }
+.sheet-x {
+  position: absolute; top: 10px; inset-inline-end: 14px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--soft); color: var(--sub); display: grid; place-items: center; cursor: pointer;
+}
+.sheet-x:active { transform: scale(0.9); }
+.sheet-top + h2, .sheet-top + form, .sheet-top + .stack { margin-top: 2px; }

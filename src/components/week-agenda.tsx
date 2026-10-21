@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MONTHS } from "@/lib/dates";
 import type { AgendaDay, AgendaEntry } from "@/lib/week";
+import { ContentIcon } from "./content-icon";
 
 const WD = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 const KIND_LABEL: Record<AgendaEntry["kind"], string> = {
@@ -20,19 +21,21 @@ export function WeekAgenda({ days, today, compact = false }: { days: AgendaDay[]
         {days.map((d, i) => (
           <div key={d.date} className={`cell${d.date === today ? " today" : ""}${d.date < today ? " past" : ""}`}>
             <span className="wd-in">{WD[i].slice(0, 3)}</span>
-            <span className="d num">{Number(d.date.slice(8))}</span>
+            <span className="cnum num">{Number(d.date.slice(8))}</span>
             {d.entries.map((e, k) => {
               const text = (
                 <>
-                  {e.time && <b className="num">{e.time} </b>}
-                  {KIND_LABEL[e.kind] && e.kind !== "event" && <b>{KIND_LABEL[e.kind]} · </b>}
-                  {e.kind === "event" && "★ "}
-                  {e.title}
-                  {e.sub && e.kind !== "meeting" && <span className="wsub"> · {e.sub}</span>}
+                  <ContentIcon kind={e.kind} size={10} />
+                  <span className="wtext">
+                    {e.time && <b className="num">{e.time} </b>}
+                    {e.title}
+                    {e.sub && e.kind !== "meeting" && <span className="wsub"> · {e.sub}</span>}
+                  </span>
                 </>
               );
               const cls = `went ${e.kind}${e.done ? " done" : ""}`;
-              return e.href ? <Link key={k} href={e.href} className={cls}>{text}</Link> : <span key={k} className={cls}>{text}</span>;
+              const label = KIND_LABEL[e.kind] || undefined; // סוג הפריט – לקוראי מסך ובריחוף, האייקון מראה אותו
+              return e.href ? <Link key={k} href={e.href} className={cls} title={label}>{text}</Link> : <span key={k} className={cls} title={label}>{text}</span>;
             })}
           </div>
         ))}

@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { inviteAction, setClientIndustry, setClientManager, type InviteState } from "@/app/(app)/admin-actions";
 import { INDUSTRY_LABEL, type Industry } from "@/lib/holidays";
+import { Sheet } from "./sheet";
 
 // טופס הזמנה לפי מייל. אחרי ההזמנה מוצגת הודעה מוכנה לשליחה בוואטסאפ
 export function InviteForm({ clientId, placeholderName }: { clientId?: string; placeholderName: string }) {
@@ -45,9 +46,7 @@ export function ConfirmButton({ label, title, body, confirmLabel, onConfirm, cla
     <>
       <button className={className} onClick={() => setOpen(true)}>{label}</button>
       {open && (
-        <div className="scrim" onClick={(e) => e.target === e.currentTarget && !pending && setOpen(false)}>
-          <div className="sheet" role="alertdialog" aria-modal="true" aria-label={title}>
-            <div className="grab" />
+        <Sheet onClose={() => setOpen(false)} label={title} busy={pending} role="alertdialog">
             <div className="warnic">!</div>
             <h2 className="center">{title}</h2>
             <p className="txt center big">{body}<br /><b className="danger">אי אפשר לבטל את הפעולה.</b></p>
@@ -57,8 +56,7 @@ export function ConfirmButton({ label, title, body, confirmLabel, onConfirm, cla
                 {pending ? "רגע…" : confirmLabel}
               </button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </>
   );
@@ -103,9 +101,7 @@ export function AssignClients({ memberId, memberName, ownerId, clients }: {
     <>
       <button className="edit" onClick={() => setOpen(true)}>שיוך לקוחות</button>
       {open && (
-        <div className="scrim" onClick={(e) => e.target === e.currentTarget && !pending && setOpen(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label={`שיוך לקוחות ל${memberName}`}>
-            <div className="grab" />
+        <Sheet onClose={() => setOpen(false)} label={`שיוך לקוחות ל${memberName}`} busy={pending}>
             <h2>הלקוחות של {memberName}</h2>
             <p className="txt">מי שמנהל/ת את הלקוח אחראי/ת גם על ההעלאות שלו.</p>
             <div className="note soft">
@@ -122,8 +118,7 @@ export function AssignClients({ memberId, memberName, ownerId, clients }: {
               <button className="tbtn" onClick={() => setOpen(false)} disabled={pending}>ביטול</button>
               <button className="pbtn" onClick={save} disabled={pending}>{pending ? "שומרים…" : "שמירה"}</button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </>
   );
