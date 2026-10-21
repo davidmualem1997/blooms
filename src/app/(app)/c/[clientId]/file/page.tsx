@@ -21,6 +21,9 @@ const CONNECT_ERRORS: Record<string, string> = {
   "no-pages": "לא נמצאו עמודים שאתם מנהלים בחשבון הפייסבוק הזה", exchange: "פייסבוק לא אישר את ההתחברות – נסו שוב", "no-code": "ההתחברות לא הושלמה",
 };
 
+// קריאת PDF עם AI לוקחת עד כדקה
+export const maxDuration = 120;
+
 export default async function ClientFilePage({ params, searchParams }: PageProps<"/c/[clientId]/file">) {
   const { clientId } = await params;
   const sp = await searchParams;
