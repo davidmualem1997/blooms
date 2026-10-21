@@ -4,6 +4,7 @@ import { signPaths } from "@/lib/media-server";
 import { avatarSrc } from "@/lib/types";
 import { ScopeSwitcher } from "@/components/scope-switcher";
 import { Bell } from "@/components/bell";
+import { Assistant } from "@/components/assistant";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           BLOOMS
         </Link>
         <div className="topbar-end">
+          <Assistant role={ctx.role} />
           <Bell unread={unread ?? 0} />
           <ScopeSwitcher options={options} allowAll={hasGeneralDashboard(ctx)} isClient={ctx.role === "client"} isOwner={ctx.role === "owner"}
             me={{ name: ctx.profile.full_name, avatar: avatarSrc(ctx.profile) }} />

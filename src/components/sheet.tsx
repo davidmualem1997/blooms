@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 // חלונית תחתונה אחידה, כמו ב-iOS:
 // • החלקה למטה סוגרת – החלונית עוקבת אחרי האצבע, ונסגרת אם משכו מספיק או "זרקו" מהר
@@ -9,6 +10,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function Sheet({ onClose, label, children, busy, role = "dialog" }: {
   onClose: () => void; label: string; children: React.ReactNode; busy?: boolean; role?: "dialog" | "alertdialog";
 }) {
+  // נפתחת ישירות ב-body: אלמנט עם backdrop-filter (השורה העליונה) "לוכד" חלונות fixed שבתוכו
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState(false);
@@ -94,9 +97,10 @@ export function Sheet({ onClose, label, children, busy, role = "dialog" }: {
       el.removeEventListener("pointermove", pm);
       el.removeEventListener("pointerup", pu);
     };
-  }, [close]);
+  }, [close, mounted]);
 
-  return (
+  if (!mounted) return null;
+  return createPortal(
     <div ref={scrimRef} className="scrim" onClick={(e) => e.target === e.currentTarget && close()}>
       <div ref={sheetRef} className="sheet" role={role} aria-modal="true" aria-label={label}>
         <div className="sheet-top">
@@ -107,6 +111,7 @@ export function Sheet({ onClose, label, children, busy, role = "dialog" }: {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
