@@ -61,7 +61,7 @@ export async function claimOnce(admin: SupabaseClient, key: string) {
 
 // מי מקבל, לפי הקשר ללקוח:
 // manager – מנהל/ת הלקוח (ואם אין – מנהלת הסטודיו); team – מנהלת הסטודיו + מנהל/ת הלקוח; client – משתמשי הלקוח
-export type Audience = "manager" | "team" | "client";
+export type Audience = "manager" | "team" | "client" | "owners";
 
 export async function recipients(clientId: string, who: Audience): Promise<string[]> {
   const admin = createAdminClient();
@@ -72,6 +72,7 @@ export async function recipients(clientId: string, who: Audience): Promise<strin
   const { data: client } = await admin.from("clients").select("studio_id, manager_id").eq("id", clientId).single();
   if (!client) return [];
   if (who === "manager" && client.manager_id) return [client.manager_id];
+  // owners: רק מנהלת הסטודיו (גם אם היא לא מנהלת את הלקוח)
   const { data: owners } = await admin.from("studio_members").select("user_id").eq("studio_id", client.studio_id).eq("role", "owner");
   return [...(owners ?? []).map((o) => o.user_id), ...(who === "team" && client.manager_id ? [client.manager_id] : [])];
 }

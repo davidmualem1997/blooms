@@ -7,7 +7,7 @@ import { signPaths } from "@/lib/media-server";
 import { createClient } from "@/lib/supabase/server";
 import { loadToday } from "@/lib/today";
 import { loadWeek } from "@/lib/week";
-import { MESSAGE_LABEL, REQUEST_STATUS, TYPE_LABEL, type Client, type Message, type TeamMeeting } from "@/lib/types";
+import { TYPE_LABEL, type Client, type TeamMeeting } from "@/lib/types";
 import { Avatar } from "./avatar";
 import { IdeaComposer } from "./idea-composer";
 import { MessageList } from "./message-list";
@@ -15,7 +15,8 @@ import { TeamMeetings } from "./team-meetings";
 import { TodoList } from "./todo-list";
 import { TrendsCard } from "./trends-card";
 import { WeekAgenda } from "./week-agenda";
-import { PortalTop } from "./portal-top";
+import { UrgentPanel } from "./urgent-panel";
+import { loadUrgent } from "@/lib/urgent";
 import { TodayDetail } from "./today-detail";
 import { ContentIcon, type IconKind } from "./content-icon";
 
@@ -31,16 +32,23 @@ export async function Dashboard({ ctx, clients, portal, tab = "today", tabConten
   const today = todayIL();
   const supabase = await createClient();
   const startOfDay = israelToUTC(today, "00:00"), endOfDay = israelToUTC(today, "23:59");
-  const [data, week, teamMeetings, recentRes, meetingsToday, eventsToday] = await Promise.all([
+  const [data, week, teamMeetings, , meetingsToday, eventsToday, storiesToday, urgent] = await Promise.all([
     loadToday(clients, today),
     loadWeek(clients, today),
     portal ? Promise.resolve({ data: [] }) : supabase.from("team_meetings").select("*").order("starts_at", { ascending: false }).limit(20),
-    // בפורטל: שלוש הפניות האחרונות של הלקוח, כמו בדף של הלקוח
-    portal ? supabase.from("messages").select("*").eq("client_id", clients[0].id).order("updated_at", { ascending: false }).limit(3) : Promise.resolve({ data: [] }),
+    Promise.resolve({ data: [] }), // (הפניות האחרונות הוסרו מ"היום")
     portal ? supabase.from("meetings").select("id, starts_at, kind, location").eq("client_id", clients[0].id).gte("starts_at", startOfDay).lte("starts_at", endOfDay).order("starts_at") : Promise.resolve({ data: [] }),
     portal ? supabase.from("client_events").select("id, title, description").eq("client_id", clients[0].id).eq("date", today) : Promise.resolve({ data: [] }),
+    portal ? supabase.from("one_off_stories").select("id, media").eq("client_id", clients[0].id).eq("date", today) : Promise.resolve({ data: [] }),
+    portal && tab === "today" ? loadUrgent(supabase, ctx, clients[0]) : Promise.resolve(null),
   ]);
-  const recent = (recentRes.data ?? []) as Message[];
+  // "היום" בפורטל: כל הקבצים במלואם (תמונות וסרטונים מקוריים) – רק לתוכן של היום
+  type M = { path: string; thumb: string | null; kind: string };
+  const storyMedia = Object.fromEntries(((storiesToday.data ?? []) as { id: string; media: M[] }[]).map((x) => [`o:${x.id}`, x.media ?? []]));
+  const fullPaths = portal && tab === "today"
+    ? [...(data.perClient[0]?.rows ?? []).flatMap((r) => (r.kind === "item" ? r.item.media.flatMap((m) => [m.path, m.thumb]) : [])), ...Object.values(storyMedia).flat().flatMap((m) => [m.path, m.thumb])]
+    : [];
+  const fullUrls = fullPaths.length ? await signPaths(fullPaths) : {};
   const isOwner = ctx.role === "owner";
   const names = Object.fromEntries(ctx.clients.map((c) => [c.id, c.name]));
   const brandPaths = clients.flatMap((c) => {
@@ -103,15 +111,12 @@ export async function Dashboard({ ctx, clients, portal, tab = "today", tabConten
           ))}
         </nav>
       )}
-      {portal && tab !== "today" ? tabContent : (<>
-
-      {portal && (
-        <TodayDetail clientId={client.id} studioId={client.studio_id} rows={data.perClient[0]?.rows ?? []} thumbs={signed}
+      {portal ? (tab !== "today" ? tabContent : (<>
+        {urgent && <UrgentPanel clientId={client.id} {...urgent} />}
+        <TodayDetail clientId={client.id} studioId={client.studio_id} rows={data.perClient[0]?.rows ?? []} urls={fullUrls} storyMedia={storyMedia}
           meetings={(meetingsToday.data ?? []) as { id: string; starts_at: string; kind: string; location: string }[]}
-          events={(eventsToday.data ?? []) as { id: string; title: string; description: string | null }[]} />
-      )}
-
-      {portal && <PortalTop clientId={client.id} today={today} canEdit showReport={false} />}
+          events={(eventsToday.data ?? []) as { id: string; title: string }[]} />
+      </>)) : (<>
 
       <WeekAgenda days={week} today={today} />
 
@@ -174,19 +179,6 @@ export async function Dashboard({ ctx, clients, portal, tab = "today", tabConten
 
       {!portal && <TrendsCard isOwner={isOwner} />}
 
-      {portal && recent.length > 0 && (
-        <section className="sec">
-          <div className="sechead"><div className="label dotted">פניות אחרונות</div><Link className="edit more" href={`/c/${client.id}/requests`}>לכל הפניות <Chevron dir="forward" size={13} /></Link></div>
-          <div className="note">
-            {recent.map((m) => (
-              <Link key={m.id} href={`/c/${client.id}/requests?f=${m.status === "done" ? "done" : m.status === "to_meeting" ? "meeting" : "open"}`} className="soon">
-                <span><span className={`tag kind-${m.kind}`}>{MESSAGE_LABEL[m.kind]}</span> “{m.body.length > 34 ? m.body.slice(0, 34) + "…" : m.body}”</span>
-                <span className={`rstatus ${m.status}`}>{REQUEST_STATUS[m.status]}{m.status === "done" ? " ✓" : ""}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       <IdeaComposer clients={clients.map((c) => ({ id: c.id, name: c.name }))} today={today} isClient={false} />
       </>)}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { deleteItem, mediaUrl, saveItem } from "@/app/(app)/c/[clientId]/gantt/actions";
+import { deleteItem, saveItem } from "@/app/(app)/c/[clientId]/gantt/actions";
 import { uploadMedia, type MediaEntry } from "@/lib/media-client";
 import { STATUS_LABEL, TYPE_LABEL, type ContentItem, type ContentStatus, type ContentType } from "@/lib/types";
 import { Sheet } from "./sheet";
 import { POST_STATS } from "@/lib/report-calc";
+import { saveMedia } from "@/lib/share-media";
 
 const TYPES = Object.keys(TYPE_LABEL) as ContentType[];
 // "לבדיקה" הוסר מהבחירה (נשאר רק לפריטים ישנים שכבר בסטטוס הזה)
@@ -60,7 +61,7 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
         type,
         status,
         // אין שדה נושא: הכותרת היא השורה הראשונה של הטקסט (או מה שהיה)
-        title: titleFrom(String(form.get("caption") ?? ""), it?.title ?? target.preset?.title ?? ""),
+        title: String(form.get("title") ?? "").trim() || titleFrom(String(form.get("caption") ?? ""), it?.title ?? target.preset?.title ?? ""),
         caption: String(form.get("caption") ?? ""),
         notes: live ? "" : String(form.get("notes") ?? ""),
       });
@@ -87,6 +88,12 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
     }));
   }
 
+  // שמירת כל הקבצים לטלפון (חלון השיתוף)
+  async function saveAll() {
+    setDlFor(null);
+    for (const m of media) await saveMedia(m.path);
+  }
+
   // העתקת הטקסט בלבד (בלי להוריד קובץ) – להדבקה באינסטגרם
   async function copyCaption() {
     setDlFor(null);
@@ -94,26 +101,6 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
     if (!text) return setToast("אין טקסט להעתקה");
     try { await navigator.clipboard.writeText(text); setToast("הטקסט הועתק ✓"); }
     catch { caption.current?.select(); setToast("סמנו והעתיקו את הטקסט"); }
-  }
-
-  // הורדה לטלפון דרך חלון השיתוף (שמירה לתמונות / ישר לאינסטגרם). "עם הטקסט" – הטקסט מועתק ללוח ומצורף לשיתוף
-  async function download(path: string, withText: boolean) {
-    setDlFor(null);
-    const url = await mediaUrl(path);
-    if (!url) return;
-    const text = caption.current?.value ?? "";
-    if (withText && text) { try { await navigator.clipboard.writeText(text); } catch { /* לא נתמך */ } }
-    try {
-      const blob = await (await fetch(url)).blob();
-      const file = new File([blob], path.split("/").pop() ?? "media", { type: blob.type });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], ...(withText && text ? { text } : {}) });
-        if (withText && text) setToast("הטקסט הועתק – אפשר להדביק באינסטגרם");
-        return;
-      }
-    } catch (e) { if ((e as Error).name === "AbortError") return; }
-    window.open(url, "_blank");
-    if (withText && text) setToast("הטקסט הועתק ללוח");
   }
 
   function remove() {
@@ -125,7 +112,21 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
   return (
     <Sheet onClose={onClose} label={it ? "עריכת תוכן" : "תוכן חדש"} busy={pending}>
       <form action={submit} className="stack">
-        <h2>{it ? "עריכת תוכן" : "תוכן חדש"}</h2>
+        {/* כותרת = נושא הפוסט (מה שמופיע בגאנט). ריק → השורה הראשונה של הטקסט. ליד: הורדה / העתקת טקסט */}
+        <div className="ed-head">
+          <input name="title" className="ed-title" defaultValue={it?.title ?? target.preset?.title ?? ""} placeholder={TYPE_LABEL[type]} aria-label="נושא" />
+          <div className="ed-dl">
+            <button type="button" className="ed-dl-btn" onClick={() => setDlFor(dlFor ? null : "all")} aria-label="הורדה" aria-expanded={!!dlFor}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
+            </button>
+            {dlFor && (
+              <div className="dl-menu" role="menu">
+                {media.length > 0 && <button type="button" role="menuitem" onClick={() => saveAll()}>שמירת {media.length > 1 ? `הקבצים (${media.length})` : media[0].kind === "video" ? "הסרטון" : "התמונה"}</button>}
+                <button type="button" role="menuitem" onClick={() => copyCaption()}>העתקת הטקסט</button>
+              </div>
+            )}
+          </div>
+        </div>
         {live && (
           <div className="live-banner">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -145,15 +146,6 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
                 ) : <span className="mph">{m.kind === "video" ? "סרטון" : "תמונה"}</span>}
                 {ix === 0 && media.length > 1 && <span className="mbadge">ראשי</span>}
                 <button type="button" className="mx" aria-label="הסרת הקובץ" onClick={() => setMedia((all) => all.filter((x) => x.path !== m.path))}>×</button>
-                <button type="button" className="mdl" onClick={() => setDlFor(dlFor === m.path ? null : m.path)} aria-label="הורדה" aria-expanded={dlFor === m.path}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
-                </button>
-                {dlFor === m.path && (
-                  <div className="dl-menu" role="menu">
-                    <button type="button" role="menuitem" onClick={() => download(m.path, false)}>שמירת ה{m.kind === "video" ? "סרטון" : "תמונה"}</button>
-                    <button type="button" role="menuitem" onClick={() => copyCaption()}>העתקת הטקסט</button>
-                  </div>
-                )}
               </div>
             );
           })}
