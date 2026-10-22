@@ -1060,7 +1060,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
   transition: background 0.2s var(--ease);
 }
 .calday.blank { border-top: 0.5px solid var(--sep); }
-button.calday:active { background: var(--soft); }
+.calday[role="button"] { cursor: pointer; justify-content: flex-start; }
+.calday[role="button"]:active { background: var(--soft); }
 .cnum { align-self: center; min-width: 26px; height: 26px; padding-inline: 4px; border-radius: 99px; display: grid; place-items: center; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
 .calday.sat .cnum { color: var(--no); }
 .calday.past .cnum { color: var(--muted); }
@@ -1356,3 +1357,17 @@ input:not(.ed-title):not(.task-title-input), textarea, select { font-size: 16px;
 img, video, svg, canvas { max-width: 100%; }
 .pre, .card, .note, .acc, .accb, p, li { overflow-wrap: anywhere; }
 .two > *, .rgrid > *, .rtop > *, .kpis > *, .rkpis > * { min-width: 0; }
+.mtile { overflow: hidden; }
+.cover-row { display: flex; align-items: center; gap: 12px; }
+.cover-tile { width: 76px; flex: none; }
+.cover-add { font-size: 15px; font-weight: 500; color: var(--accent); cursor: pointer; padding: 6px 2px; }
+
+/* "היום": כפתור "עלה" – אפור, וירוק כשסומן */
+.td-btn.primary { background: var(--soft); color: var(--ink); }
+.td-btn.primary.on { background: var(--s-ok); color: #fff; }
+/* משימה דחופה: התגית בצד ימין, באותה שורה עם הכותרת */
+.task-open { display: block; }
+.task-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.task-open small { display: block; }
+.ctg.st { background: color-mix(in srgb, var(--ink) 5%, transparent); color: var(--sub); }
+.ctg.st { height: auto; min-height: 14px; padding-block: 1px; }

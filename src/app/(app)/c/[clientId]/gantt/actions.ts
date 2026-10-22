@@ -17,6 +17,7 @@ export type ItemInput = {
   caption: string;
   notes: string;
   media: { path: string; thumb: string | null; kind: "image" | "video" }[];
+  cover?: { path: string; thumb: string | null } | null; // תמונת קאבר – מוצגת בפיד כתמונה הראשית
   stats?: Record<string, number>;
 };
 
@@ -37,16 +38,18 @@ export async function saveItem(input: ItemInput): Promise<{ error?: string }> {
     caption: input.caption,
     notes: input.notes,
     media: input.media,
-    thumb_path: input.media[0]?.thumb ?? null,
+    cover: input.cover ?? null,
+    thumb_path: input.cover?.thumb ?? input.cover?.path ?? input.media[0]?.thumb ?? null,
     ...(input.stats ? { stats: input.stats } : {}),
   };
   const { data: auth } = await supabase.auth.getUser();
   // קבצים שהוסרו מהפריט נמחקים מהאחסון
   let removed: string[] = [];
   if (input.id) {
-    const { data: prev } = await supabase.from("content_items").select("media").eq("id", input.id).single();
-    const keep = new Set(input.media.flatMap((m) => [m.path, m.thumb]));
-    removed = ((prev?.media ?? []) as ItemInput["media"]).flatMap((m) => [m.path, m.thumb]).filter((p): p is string => !!p && !keep.has(p));
+    const { data: prev } = await supabase.from("content_items").select("media, cover").eq("id", input.id).single();
+    const keep = new Set([...input.media.flatMap((m) => [m.path, m.thumb]), input.cover?.path, input.cover?.thumb]);
+    const before = [...((prev?.media ?? []) as ItemInput["media"]).flatMap((m) => [m.path, m.thumb]), prev?.cover?.path, prev?.cover?.thumb];
+    removed = before.filter((p): p is string => !!p && !keep.has(p));
   }
   const { error } = input.id
     ? await supabase.from("content_items").update(row).eq("id", input.id)

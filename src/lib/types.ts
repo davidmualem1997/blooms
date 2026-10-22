@@ -32,6 +32,7 @@ export type ContentItem = {
   status: ContentStatus;
   thumb_path: string | null;
   media: { path: string; thumb: string | null; kind: "image" | "video" }[];
+  cover?: { path: string; thumb: string | null } | null;
   stats?: Record<string, number>;
 };
 
