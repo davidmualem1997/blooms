@@ -1162,3 +1162,21 @@ button.calday:active { background: var(--soft); }
 .ai-composer input { border-radius: 99px; }
 .ai-note { font-size: 12px; text-align: center; }
 .ai-btn { color: var(--ink); }
+
+/* ---------- רוחב קבוע: אף פעם לא גלילה לרוחב (clip ולא hidden – כדי שהסרגלים הצפים ימשיכו לעבוד) ---------- */
+html, body { overflow-x: clip; max-width: 100%; }
+.app { overflow-x: clip; }
+body { overscroll-behavior-x: none; }
+
+/* ---------- הסרגל העליון נעלם בגלילה למטה וחוזר בגלילה למעלה ---------- */
+.topbar { top: env(safe-area-inset-top, 0px); transition: transform 0.32s var(--ease); will-change: transform; }
+.hdr-hidden .topbar { transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 2px)); }
+.ftabs { transition: top 0.32s var(--ease); }
+.hdr-hidden .ftabs { top: env(safe-area-inset-top, 0px); }
+/* פס זכוכית מאחורי השעון והאי, כדי שהתוכן לא "ייכנס" לתוכם כשהסרגל מוסתר */
+.app::before {
+  content: ""; position: fixed; inset: 0 0 auto 0; height: env(safe-area-inset-top, 0px); z-index: 9;
+  background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .topbar, .ftabs { transition: none; } }

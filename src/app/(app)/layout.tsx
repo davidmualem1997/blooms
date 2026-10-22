@@ -5,6 +5,7 @@ import { avatarSrc } from "@/lib/types";
 import { ScopeSwitcher } from "@/components/scope-switcher";
 import { Bell } from "@/components/bell";
 import { Assistant } from "@/components/assistant";
+import { HeaderAutoHide } from "@/components/header-auto-hide";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   });
   return (
     <div className="app" dir="rtl">
+      <HeaderAutoHide />
       <header className="topbar">
         <Link href="/" className="brandmark" aria-label="BLOOMS – דף הבית">
           <span className="dots" aria-hidden="true"><i /><i /><i /><i /></span>
