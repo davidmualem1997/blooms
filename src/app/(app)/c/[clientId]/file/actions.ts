@@ -30,7 +30,7 @@ export async function addTask(clientId: string, title: string, assigneeId: strin
   revalidatePath("/");
 }
 
-export async function updateTask(clientId: string, id: string, patch: { done?: boolean; assignee_id?: string }) {
+export async function updateTask(clientId: string, id: string, patch: { done?: boolean; assignee_id?: string; title?: string; description?: string; urgent?: boolean }) {
   const supabase = await createClient();
   await supabase.from("tasks").update(patch).eq("id", id);
   done(clientId);
@@ -40,6 +40,16 @@ export async function updateTask(clientId: string, id: string, patch: { done?: b
 export async function deleteTask(clientId: string, id: string) {
   const supabase = await createClient();
   await supabase.from("tasks").delete().eq("id", id);
+  done(clientId);
+}
+
+// סיכום לפגישה שלא נקבעה מראש (שיחה קצרה, פגישה ספונטנית): יוצרים את הפגישה ושומרים את הסיכום
+export async function addMeetingSummary(clientId: string, kind: "meet" | "call" | "zoom", date: string, summary: string) {
+  if (!summary.trim()) return;
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const { data: m } = await supabase.from("meetings").insert({ client_id: clientId, kind, starts_at: israelToUTC(date, "12:00"), location: "", created_by: auth.user?.id }).select("id").single();
+  if (m) await saveSummary(clientId, m.id, summary.trim(), []);
   done(clientId);
 }
 

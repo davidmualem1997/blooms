@@ -41,7 +41,7 @@ export async function loadWeek(clients: Client[], today: string): Promise<Agenda
   push(dl.approve.date, { kind: "deadline", title: `אישור סופי – ${monthName(dl.approve.month)}`, sub: "" });
 
   for (const h of calendarEvents(from, to, "other")) {
-    push(h.date, { kind: h.kind === "memorial" ? "memorial" : "holiday", title: h.title, sub: "" });
+    push(h.date, { kind: h.kind === "memorial" ? "memorial" : h.kind === "holiday" ? "holiday" : "event", title: h.title, sub: "" }); // רק מועדי ישראל = חג
   }
   for (const m of (team.data ?? []) as TeamMeeting[]) {
     const { date, time } = formatIL(m.starts_at);

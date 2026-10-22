@@ -21,6 +21,8 @@ type Props = {
   nav: React.ReactNode; // חצים למעבר בין חודשים
 };
 
+// בלוח: השם המלא עד 60 תווים, בשבירת שורות (בלי חיתוך באמצע)
+const cut = (t: string) => (t.length > 60 ? t.slice(0, 59) + "…" : t);
 const WD_SHORT = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 
 export function GanttBoard(p: Props) {
@@ -57,20 +59,21 @@ export function GanttBoard(p: Props) {
             const its = p.items.filter((i) => i.date === d);
             const ss = storiesOn(d);
             const wd = parseISODate(d).getUTCDay();
-            const special = p.special.some((e) => e.date === d); // חג / יום זיכרון – כל היום מסומן באפור
+            // רק מועדי ישראל (חגים וימי זיכרון) צובעים את כל היום באפור; ימים בינלאומיים/של התחום – רק תגית
+            const special = p.special.some((e) => e.date === d && (e.kind === "holiday" || e.kind === "memorial"));
             return (
               <button key={d} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}${special ? " hol" : ""}`} onClick={() => setDay(d)}
                 aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
                 <span className="cnum num">{Number(d.slice(8))}</span>
                 {p.special.filter((e) => e.date === d).map((e) => (
-                  <span key={e.title} className="ctg gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{e.title}</span></span>
+                  <span key={e.title} className="ctg gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{cut(e.title)}</span></span>
                 ))}
                 {p.custom.filter((e) => e.date === d).map((e) => (
-                  <span key={e.id} className="ctg gray"><ContentIcon kind="event" size={10} /><span>{e.title}</span></span>
+                  <span key={e.id} className="ctg gray"><ContentIcon kind="event" size={10} /><span>{cut(e.title)}</span></span>
                 ))}
                 {its.map((i) => (
                   <span key={i.id} className={`ctg ${i.type === "tiktok" ? "pink" : "yellow"}${i.status === "live" ? " done" : ""}`} title={`${TYPE_LABEL[i.type]} · ${i.title} · ${STATUS_LABEL[i.status]}`}>
-                    <ContentIcon kind={i.type} size={10} /><span>{i.title}</span>
+                    <ContentIcon kind={i.type} size={10} /><span>{cut(i.title)}</span>
                   </span>
                 ))}
                 {ss.length > 0 && <span className="ctg st"><ContentIcon kind="story" size={10} /><span>{ss.length === 1 ? ss[0].title : `${ss.length} סטוריז`}</span></span>}

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { PdfImport } from "./pdf-import";
 import { useState, useTransition } from "react";
 import { Sheet } from "@/components/sheet";
@@ -9,7 +8,7 @@ import { uploadMedia } from "@/lib/media-client";
 import type { Brand, ClientEvent, Meeting, Message, Task } from "@/lib/types";
 import { mediaUrl } from "../gantt/actions";
 import {
-  addMeeting, addTask, deleteEvent, deleteMeeting, deleteTask, saveEvent, saveSummary, setMeetingTopics, updateBrand, updateTask,
+  addMeeting, addMeetingSummary, addTask, deleteEvent, deleteMeeting, deleteTask, saveEvent, saveSummary, setMeetingTopics, updateBrand, updateTask,
 } from "./actions";
 
 export type FileTab = "general" | "brand" | "ops" | "events" | "meetings" | "contacts" | "connections" | "settings";
@@ -91,6 +90,7 @@ export function ClientFile(p: Props) {
   const [eventFor, setEventFor] = useState<ClientEvent | "new" | null>(null);
   const [editLinks, setEditLinks] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [taskFor, setTaskFor] = useState<Task | null>(null);
   const [, start] = useTransition();
   const b = p.brand;
   const patch = (x: Partial<Brand>) => start(() => updateBrand(p.clientId, x));
@@ -292,29 +292,27 @@ export function ClientFile(p: Props) {
       </>)}
 
       {shown === "tasks" && (<>
-      {/* משימות צוות – רק לצוות */}
+      {/* משימות צוות – רק לצוות. משימה חדשה למעלה; לחיצה על משימה – תיאור, אחראי/ת ודחיפות */}
       {p.isStaff && (
         <section className="sec">
           <div className="sechead"><div className="label dotted">משימות צוות</div><span className="txt">רק לצוות · {p.tasks.filter((t) => !t.done).length} פתוחות</span></div>
           <div className="note">
-            {p.tasks.map((t) => (
-              <div key={t.id} className={`task${t.done ? " done" : ""}`}>
+            <AddLine placeholder="+ משימה חדשה" onAdd={(t) => addTask(p.clientId, t, p.userId)} />
+            {[...p.tasks].sort((a, c) => Number(a.done) - Number(c.done) || Number(!!c.urgent) - Number(!!a.urgent)).map((t) => (
+              <div key={t.id} className={`task${t.done ? " done" : ""}${t.urgent ? " urgent-task" : ""}`}>
                 <button className="box" aria-pressed={t.done} aria-label="בוצע" onClick={() => start(() => updateTask(p.clientId, t.id, { done: !t.done }))}>✓</button>
-                <span className="tt">{t.title}</span>
-                <span className="task-acts">
-                  <button className="tag" aria-label={`אחראי: ${teamName(t.assignee_id)}`} onClick={() => {
-                    const ix = p.team.findIndex((m) => m.id === t.assignee_id);
-                    start(() => updateTask(p.clientId, t.id, { assignee_id: p.team[(ix + 1) % p.team.length].id }));
-                  }}>{teamName(t.assignee_id)}</button>
-                  <button className="xbtn" aria-label="מחיקה" onClick={() => start(() => deleteTask(p.clientId, t.id))}>×</button>
-                </span>
+                <button className="tt task-open" onClick={() => setTaskFor(t)}>
+                  {t.urgent && <span className="urgent-dot" aria-label="דחוף">דחוף</span>}
+                  {t.title}
+                  {t.description && <small>{t.description}</small>}
+                </button>
+                <span className="tag">{teamName(t.assignee_id)}</span>
               </div>
             ))}
-            <AddLine placeholder="משימה חדשה לצוות" onAdd={(t) => addTask(p.clientId, t, p.userId)} />
           </div>
         </section>
       )}
-
+      {taskFor && <TaskSheet clientId={p.clientId} task={taskFor} team={p.team} onClose={() => setTaskFor(null)} />}
       </>)}
       {shown === "events" && (<>
       {/* אירועים קרובים */}
@@ -334,7 +332,6 @@ export function ClientFile(p: Props) {
               {e.description && <p className="pre">{e.description}</p>}
               <div className="row-gap">
                 {e.link && <a className="edit" href={fixUrl(e.link)} target="_blank" rel="noopener">חומרים לאירוע</a>}
-                {p.isStaff && <Link className="edit" href={`/c/${p.clientId}/gantt?m=${e.date.slice(0, 7)}`}>יצירת תוכן מהאירוע</Link>}
               </div>
               {(e.images ?? []).length > 0 && (
                 <div className="media-strip">
@@ -371,6 +368,15 @@ export function ClientFile(p: Props) {
               return addMeeting(p.clientId, kind, v.date || p.today, v.time, v.where);
             },
           })}>קביעת פגישה</button>
+          {p.isStaff && <button className="edit" onClick={() => setForm({
+            title: "סיכום פגישה",
+            fields: [
+              { k: "kind", label: "סוג", type: "select", options: ["פגישה", "שיחת טלפון", "זום"], value: "פגישה" },
+              { k: "date", label: "תאריך", type: "date", value: p.today },
+              { k: "summary", label: "הסיכום", type: "area", rows: 8 },
+            ],
+            onSave: (v) => addMeetingSummary(p.clientId, v.kind.includes("טלפון") ? "call" : v.kind.includes("זום") ? "zoom" : "meet", v.date || p.today, v.summary),
+          })}>הוספת סיכום</button>}
         </div>
         {next ? (() => {
           const { date, time } = formatIL(next.starts_at);
@@ -557,7 +563,7 @@ function EventSheet({ p, event, onClose }: { p: Props; event: ClientEvent | null
   return (
     <Sheet onClose={onClose} label="אירוע" busy={pending || busy}>
       <form className="stack" action={(fd) => start(async () => {
-        await saveEvent(p.clientId, { id: event?.id, date: String(fd.get("date")) || p.today, title: String(fd.get("title") ?? ""), description: String(fd.get("desc") ?? ""), link: String(fd.get("link") ?? "").trim(), needs_material: fd.get("needs") === "on", images });
+        await saveEvent(p.clientId, { id: event?.id, date: String(fd.get("date")) || p.today, title: String(fd.get("title") ?? ""), description: String(fd.get("desc") ?? ""), link: String(fd.get("link") ?? "").trim(), needs_material: event?.needs_material ?? false, images });
         onClose();
       })}>
         <h2>{event ? "עריכת אירוע" : "אירוע חדש"}</h2>
@@ -565,7 +571,6 @@ function EventSheet({ p, event, onClose }: { p: Props; event: ClientEvent | null
         <label className="field"><span className="label">תאריך</span><input type="date" name="date" defaultValue={event?.date ?? p.today} /></label>
         <label className="field"><span className="label">פרטים והערות</span><textarea name="desc" rows={4} defaultValue={event?.description} placeholder="שעה, מחיר, הרשמה, מה צריך לפרסם" /></label>
         <label className="field"><span className="label">קישור לחומרים</span><input name="link" dir="ltr" defaultValue={event?.link} placeholder="דרייב, קאנבה…" /></label>
-        <label className="chk"><input type="checkbox" name="needs" defaultChecked={event?.needs_material} /> מחכים לחומרים מהלקוח (נשלחת לו תזכורת כמה ימים לפני)</label>
         <div className="field"><span className="label">תמונות לפרסום</span>
           <div className="media-strip">
             {images.map((im) => (
@@ -628,6 +633,35 @@ function SummarySheet({ meeting, openMessages, onClose, onSave }: {
             לסמן את {openMessages.length} הבקשות של הלקוח כטופלו</label>
         )}
         <div className="acts2"><span /><button className="pbtn" disabled={pending}>{pending ? "שומרים…" : "שמירה"}</button></div>
+      </form>
+    </Sheet>
+  );
+}
+
+// פרטי משימה: כותרת, תיאור, באחריות מי, והאם דחוף
+function TaskSheet({ clientId, task, team, onClose }: { clientId: string; task: Task; team: { id: string; name: string }[]; onClose: () => void }) {
+  const [pending, start] = useTransition();
+  return (
+    <Sheet onClose={onClose} label="משימה" busy={pending}>
+      <form className="stack" action={(fd) => start(async () => {
+        await updateTask(clientId, task.id, {
+          title: String(fd.get("title") ?? "").trim() || task.title,
+          description: String(fd.get("description") ?? ""),
+          assignee_id: String(fd.get("assignee") ?? "") || undefined,
+          urgent: fd.get("urgent") === "on",
+        });
+        onClose();
+      })}>
+        <input name="title" defaultValue={task.title} aria-label="המשימה" className="task-title-input" />
+        <label className="field"><span className="label">תיאור</span><textarea name="description" rows={4} defaultValue={task.description ?? ""} /></label>
+        <label className="field"><span className="label">באחריות</span>
+          <select name="assignee" defaultValue={task.assignee_id ?? ""}>{team.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+        </label>
+        <label className="chk"><input type="checkbox" name="urgent" defaultChecked={task.urgent} /> דחוף</label>
+        <div className="acts2">
+          <button type="button" className="tbtn danger" onClick={() => start(async () => { await deleteTask(clientId, task.id); onClose(); })}>מחיקה</button>
+          <button className="pbtn" disabled={pending}>שמירה</button>
+        </div>
       </form>
     </Sheet>
   );

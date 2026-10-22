@@ -80,7 +80,7 @@ export type Brand = {
   booking?: { reserve_url?: string; reserve_phone?: string; menu_url?: string; waze_url?: string; google_url?: string };
 };
 
-export type Task = { id: string; title: string; assignee_id: string | null; done: boolean };
+export type Task = { id: string; title: string; assignee_id: string | null; done: boolean; description?: string; urgent?: boolean };
 export type Meeting = { id: string; kind: "meet" | "call" | "zoom"; starts_at: string; location: string; extra_topics: string[]; summary: string };
 
 export type Idea = { id: string; client_id: string; month: string; title: string; note: string; url: string; image_path: string | null; source: "team" | "client"; used: boolean; created_at: string; author?: string };

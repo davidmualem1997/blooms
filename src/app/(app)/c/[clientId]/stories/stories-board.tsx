@@ -5,6 +5,7 @@ import { deleteOneOff, mediaUrl, saveOneOffStory, setStoryDoneOn } from "../gant
 import { MONTHS, WEEKDAYS, parseISODate } from "@/lib/dates";
 import { uploadMedia } from "@/lib/media-client";
 import { Sheet } from "@/components/sheet";
+import { saveMedia } from "@/lib/share-media";
 
 type Media = { path: string; thumb: string | null; kind: string };
 export type Story = { ref: string; id: string; title: string; recurring: boolean; media: Media[]; done: boolean };
@@ -53,6 +54,12 @@ export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit 
                       <span className="story-title">{s.title}</span>
                       {s.recurring && <span className="story-badge">קבוע</span>}
                     </button>
+                    {/* הורדה ישר מהכרטיס */}
+                    {s.media.length > 0 && (
+                      <button className="story-dl" aria-label="הורדת הסטורי" onClick={async () => { for (const m of s.media) await saveMedia(m.path); }}>
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
+                      </button>
+                    )}
                     {/* סימון "עלה" ישר על הסטורי, בלי לפתוח אותו */}
                     <button className={`story-tick${s.done ? " on" : ""}`} aria-pressed={s.done} aria-label={s.done ? "עלה – ביטול הסימון" : "סימון שעלה"} disabled={!canEdit}
                       onClick={() => start(() => setStoryDoneOn(clientId, s.ref, d.date, !s.done))}>

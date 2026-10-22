@@ -29,7 +29,7 @@ export function BriefForm({ clientId, brief }: { clientId: string; brief?: Brief
       time_text: t1 && t2 ? `${t1}–${t2}` : t1 || t2,
       location: String(fd.get("location") ?? ""),
       goal: String(fd.get("goal") ?? ""),
-      feeling: String(fd.get("feeling") ?? ""),
+      feeling: brief?.feeling ?? "",
       shots: shots.filter((x) => x.text.trim() || x.ref?.trim()).map((x) => ({ text: x.text.trim(), ref: x.ref?.trim() ? fixUrl(x.ref.trim()) : "", feeling: x.feeling?.trim() ?? "", done: x.done ?? false })),
       equipment: lines(fd.get("equipment")).map((l): Equipment => {
         const [text, ...who] = l.split(" - ");
@@ -50,9 +50,6 @@ export function BriefForm({ clientId, brief }: { clientId: string; brief?: Brief
         <button type="button" className="tbtn" onClick={() => save("draft")} disabled={pending}>שמירה כטיוטה</button>
       </div>
 
-      <label className="field"><span className="label">לוח השראה (Vision board)</span>
-        <input name="vision_board" dir="ltr" inputMode="url" defaultValue={brief?.vision_board} aria-label="קישור ללוח השראה" />
-      </label>
       <label className="field"><span className="label">כותרת</span><input name="title" defaultValue={brief?.title} /></label>
       <div className="brief-when">
         <label className="field"><span className="label">תאריך</span><input type="date" name="shoot_date" defaultValue={brief?.shoot_date ?? ""} /></label>
@@ -60,8 +57,10 @@ export function BriefForm({ clientId, brief }: { clientId: string; brief?: Brief
         <label className="field"><span className="label">עד</span><input type="time" name="to" defaultValue={/^\d{1,2}:\d{2}$/.test(to) ? to.padStart(5, "0") : ""} /></label>
       </div>
       <label className="field"><span className="label">לוקיישן</span><input name="location" defaultValue={brief?.location} /></label>
+      <label className="field"><span className="label">לוח השראה (Vision board)</span>
+        <input name="vision_board" dir="auto" inputMode="url" defaultValue={brief?.vision_board} aria-label="קישור ללוח השראה" />
+      </label>
       <label className="field"><span className="label">הרעיון המרכזי / מטרה</span><textarea name="goal" rows={3} defaultValue={brief?.goal} /></label>
-      <label className="field"><span className="label">התחושה הכללית</span><input name="feeling" defaultValue={brief?.feeling} /></label>
 
       {/* רשימת הצילומים */}
       <div className="field">
@@ -73,7 +72,7 @@ export function BriefForm({ clientId, brief }: { clientId: string; brief?: Brief
               <div className="shot-body">
                 <input value={x.text} onChange={(e) => set(i, { text: e.target.value })} placeholder="תיאור הסרטון / התמונה" aria-label={`צילום ${i + 1} – תיאור`} />
                 <div className="shot-ref">
-                  <input value={x.ref ?? ""} onChange={(e) => set(i, { ref: e.target.value })} dir="ltr" inputMode="url" placeholder="קישור להשראה" aria-label={`צילום ${i + 1} – קישור להשראה`} />
+                  <input value={x.ref ?? ""} onChange={(e) => set(i, { ref: e.target.value })} dir="auto" className="ref-input" inputMode="url" placeholder="קישור להשראה" aria-label={`צילום ${i + 1} – קישור להשראה`} />
                   {x.ref && isUrl(x.ref) && <a className="shot-open" href={fixUrl(x.ref.trim())} target="_blank" rel="noopener">צפייה ↗</a>}
                 </div>
                 <input value={x.feeling ?? ""} onChange={(e) => set(i, { feeling: e.target.value })} placeholder="תחושה / ערכים שצריכים לצאת" aria-label={`צילום ${i + 1} – תחושה`} />

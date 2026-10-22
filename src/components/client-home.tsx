@@ -7,6 +7,9 @@ import { Avatar } from "./avatar";
 import { Chevron } from "./chevron";
 import { NeedsYou, TodayCard } from "./client-home-parts";
 import { LogoEdit } from "./hero-brand-edit";
+import { UrgentPanel } from "./urgent-panel";
+import { loadUrgent } from "@/lib/urgent";
+import { getContext } from "@/lib/context";
 import { ReportChip } from "./data-report";
 
 const TYPE_SHORT = { post: "Post", reel: "Reel", tiktok: "TikTok" } as const;
@@ -29,6 +32,7 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
     supabase.from("meetings").select("starts_at, summary").eq("client_id", client.id).neq("summary", "").order("starts_at", { ascending: false }).limit(1),
     supabase.from("monthly_focus").select("id, text, done, url").eq("client_id", client.id).eq("month", today.slice(0, 7) + "-01").eq("kind", "marketing").order("position"),
   ]);
+  const urgent = await loadUrgent(supabase, await getContext(), client);
   const marketingItems = (marketing.data ?? []) as { id: string; text: string; done: boolean; url: string }[];
   const weekItems = (items.data ?? []) as ContentItem[];
   const waiting = (pending.data ?? []) as ContentItem[];
@@ -79,6 +83,9 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
         </div>
         <div className="txt big">שלום{userName ? ` ${userName.split(" ")[0]}` : ""}, יום {WEEKDAYS[d0.getUTCDay()]} {d0.getUTCDate()} ב{MONTHS[d0.getUTCMonth()]}</div>
       </header>
+
+      {/* הודעות דחופות מהצוות */}
+      {urgent.incoming.length > 0 && <UrgentPanel clientId={client.id} incoming={urgent.incoming} sent={[]} recipients={[]} />}
 
       {waiting.length > 0 && (
         <NeedsYou clientId={client.id} items={waiting} thumbs={signed} deadline={shortDate(dl.approve.date)} />

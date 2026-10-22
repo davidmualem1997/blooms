@@ -16,7 +16,7 @@ export async function loadFileData(clientId: string) {
   const supabase = await createClient();
   const isStaff = ctx.role !== "client";
   const [{ data: tasks }, { data: meetings }, { data: openMessages }, { data: events }] = await Promise.all([
-    isStaff ? supabase.from("tasks").select("id, title, assignee_id, done").eq("client_id", clientId).order("created_at") : Promise.resolve({ data: [] }),
+    isStaff ? supabase.from("tasks").select("id, title, assignee_id, done, description, urgent").eq("client_id", clientId).order("created_at") : Promise.resolve({ data: [] }),
     supabase.from("meetings").select("id, kind, starts_at, location, extra_topics, summary").eq("client_id", clientId).order("starts_at"),
     supabase.from("messages").select("*").eq("client_id", clientId).or("status.eq.to_meeting,and(kind.eq.call,status.neq.done)").order("created_at"),
     supabase.from("client_events").select("*").eq("client_id", clientId).gte("date", today).order("date"),

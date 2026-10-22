@@ -1293,3 +1293,66 @@ body { overscroll-behavior-x: none; }
 .shotrow-body { display: grid; gap: 2px; min-width: 0; }
 .shotrow-t { line-height: 1.4; }
 .shotrow.done .shotrow-t { color: var(--muted); text-decoration: line-through; }
+
+/* ---------- הודעות דחופות ---------- */
+.urgent { gap: 10px; }
+.urgent-card { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: var(--surface); border-radius: var(--r-group); padding: 12px 14px; box-shadow: 0 0 0 1.5px var(--no); }
+.urgent-ic { width: 28px; height: 28px; border-radius: 50%; background: var(--no); color: #fff; display: grid; place-items: center; font-weight: 700; }
+.urgent-body { display: grid; gap: 2px; min-width: 0; }
+.urgent-body p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.urgent-compose { display: grid; gap: 8px; background: var(--surface); box-shadow: var(--shadow); border-radius: var(--r-group); padding: 12px 14px; }
+.urgent-to { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.urgent-sent { display: grid; gap: 4px; border-top: 0.5px solid var(--sep); padding-top: 8px; }
+.urgent-sent .txt { font-size: 12.5px; overflow-wrap: anywhere; }
+
+/* ---------- "היום" – תצוגה מלאה לפי סוג ---------- */
+.td-group { display: grid; gap: 10px; }
+.td-gh { display: flex; align-items: center; gap: 7px; font-size: 19px; font-weight: 600; margin-top: 8px; }
+.td-gh .txt { font-weight: 400; }
+.td-post { background: var(--surface); box-shadow: var(--shadow); border-radius: var(--r-card); overflow: hidden; display: grid; }
+.td-post.done { opacity: 0.8; }
+.td-strip { display: flex; gap: 2px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; background: var(--soft); }
+.td-strip::-webkit-scrollbar { display: none; }
+.td-full { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 4 / 5; max-width: 100%; max-height: 72vh; display: grid; place-items: center; background: #000; }
+.td-full.tall { aspect-ratio: 9 / 16; max-height: 78vh; }
+.td-strip:has(.td-full + .td-full) .td-full { flex-basis: 88%; }
+.td-full img, .td-full video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.td-full.empty-media { background: var(--soft); aspect-ratio: 16 / 7; }
+.td-post-body { display: grid; gap: 6px; padding: 14px 16px 16px; min-width: 0; }
+.td-caption.full { -webkit-line-clamp: unset; display: block; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
+.td-post .td-type { gap: 8px; }
+.td-post .td-status { margin-inline-start: 0; }
+
+/* ---------- משימות ---------- */
+.task-open { display: grid; gap: 2px; text-align: start; min-width: 0; }
+.task-open small { font-size: 13px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.urgent-dot { justify-self: start; font-size: 11px; font-weight: 600; color: #fff; background: var(--no); border-radius: 99px; padding: 1px 8px; }
+.task.urgent-task .box:not([aria-pressed="true"]) { box-shadow: inset 0 0 0 1.5px var(--no); }
+.task-title-input { font-size: 20px; font-weight: 600; background: none; padding-inline: 0; }
+.task-title-input:focus { background: var(--soft); padding-inline: 12px; }
+.note > .addrow:first-child { border-bottom: 0.5px solid var(--sep); }
+
+/* ---------- עורך: כותרת עם הורדה לידה ---------- */
+.ed-head { display: flex; align-items: center; gap: 10px; }
+.ed-title { flex: 1; min-width: 0; font-size: 22px; font-weight: 600; background: none; padding: 6px 0; border-radius: 0; letter-spacing: -0.015em; }
+.ed-title::placeholder { color: var(--ink); opacity: 0.9; }
+.ed-title:focus { background: var(--soft); padding-inline: 12px; border-radius: 12px; }
+.ed-dl { position: relative; flex: none; }
+.ed-dl-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--soft); color: var(--ink); display: grid; place-items: center; }
+.ed-dl .dl-menu { top: 44px; left: 0; min-width: 170px; }
+.story-dl { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.9); color: #1d1d1f; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); }
+.story-dl:active { transform: scale(0.88); }
+
+/* ---------- בלוח: הטקסט המלא (עד 60 תווים), בכמה שורות ---------- */
+.ctg { height: auto; align-items: flex-start; }
+.ctg > span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; }
+.ctg .cicon { margin-top: 2px; }
+.calday.hol .ctg.gray { padding-inline: 2px; }
+@media (max-width: 540px) { .ctg { height: auto; } }
+.ref-input { text-align: right; }
+
+/* ---------- אייפון: שדה עם טקסט קטן מ-16px גורם לזום אוטומטי – ואז הדף רחב מהמסך ונגלל לצדדים ---------- */
+input:not(.ed-title):not(.task-title-input), textarea, select { font-size: 16px; }
+img, video, svg, canvas { max-width: 100%; }
+.pre, .card, .note, .acc, .accb, p, li { overflow-wrap: anywhere; }
+.two > *, .rgrid > *, .rtop > *, .kpis > *, .rkpis > * { min-width: 0; }
