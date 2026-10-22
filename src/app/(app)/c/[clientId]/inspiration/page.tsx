@@ -26,7 +26,8 @@ export default async function InspirationPage({ params, searchParams }: PageProp
   ]);
   const ideas = ((data ?? []) as (Idea & { author: { full_name: string } | null })[]).map((i) => ({ ...i, author: i.author?.full_name ?? "" }));
   const images = await signPaths(ideas.map((i) => i.image_path));
-  const client = ctx.clients.find((c) => c.id === clientId)!;
+  const client = ctx.clients.find((c) => c.id === clientId);
+  if (!client) notFound(); // לקוח שאין גישה אליו (או שנמחק)
 
   return (
     <>

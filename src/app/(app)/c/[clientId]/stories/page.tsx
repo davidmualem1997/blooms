@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getContext } from "@/lib/context";
 import { parseISODate, toISODate, todayIL, weekday } from "@/lib/dates";
 import { signPaths } from "@/lib/media-server";
@@ -11,7 +12,8 @@ import { StoriesBoard, type StoryDay } from "./stories-board";
 export default async function StoriesPage({ params }: PageProps<"/c/[clientId]/stories">) {
   const { clientId } = await params;
   const ctx = await getContext();
-  const client = ctx.clients.find((c) => c.id === clientId)!;
+  const client = ctx.clients.find((c) => c.id === clientId);
+  if (!client) notFound(); // לקוח שאין גישה אליו (או שנמחק)
   const today = todayIL();
   const dates = Array.from({ length: 14 }, (_, i) => { const d = parseISODate(today); d.setUTCDate(d.getUTCDate() + i); return toISODate(d); });
   const supabase = await createClient();

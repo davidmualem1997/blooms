@@ -26,9 +26,32 @@ export function makeThumb(file: File): Promise<Blob | null> {
       v.playsInline = true;
       v.preload = "auto";
       v.src = url;
-      const timer = setTimeout(() => finish(null), 8000);
-      v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 3); };
-      v.onseeked = () => { clearTimeout(timer); try { draw(v, v.videoWidth, v.videoHeight); } catch { finish(null); } };
+      const timer = setTimeout(() => finish(null), 10000);
+      // אייפון לא מפענח פריים לפני ניגון – "מעירים" את הסרטון, ובודקים שהפריים לא שחור (פתיחה בהשחרה)
+      let tries: number[] = [];
+      const dark = () => {
+        const c = document.createElement("canvas");
+        c.width = 16; c.height = 16;
+        const ctx = c.getContext("2d")!;
+        ctx.drawImage(v, 0, 0, 16, 16);
+        const px = ctx.getImageData(0, 0, 16, 16).data;
+        let sum = 0;
+        for (let i = 0; i < px.length; i += 4) sum += px[i] + px[i + 1] + px[i + 2];
+        return sum / (px.length / 4) / 3 < 14;
+      };
+      v.onloadeddata = async () => {
+        const d = v.duration || 2;
+        tries = [Math.min(1, d / 3), d * 0.25, d * 0.5].filter((t, i, a) => t < d && a.indexOf(t) === i);
+        try { await v.play(); v.pause(); } catch { /* חלק מהדפדפנים לא צריכים */ }
+        v.currentTime = tries.shift() ?? 0;
+      };
+      v.onseeked = () => {
+        try {
+          if (tries.length && dark()) { v.currentTime = tries.shift()!; return; }
+          clearTimeout(timer);
+          draw(v, v.videoWidth, v.videoHeight);
+        } catch { clearTimeout(timer); finish(null); }
+      };
       v.onerror = () => { clearTimeout(timer); finish(null); };
     } else {
       const img = new Image();

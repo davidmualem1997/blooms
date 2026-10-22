@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { deleteOneOff, mediaUrl, saveOneOffStory, setStoryDoneOn } from "../gantt/actions";
-import { MONTHS, WEEKDAYS, parseISODate, shortDate } from "@/lib/dates";
+import { MONTHS, WEEKDAYS, parseISODate } from "@/lib/dates";
 import { uploadMedia } from "@/lib/media-client";
 import { Sheet } from "@/components/sheet";
 
@@ -10,11 +10,9 @@ type Media = { path: string; thumb: string | null; kind: string };
 export type Story = { ref: string; id: string; title: string; recurring: boolean; media: Media[]; done: boolean };
 export type StoryDay = { date: string; stories: Story[] };
 
-const dayTitle = (d: string, today: string, i: number) => {
-  const x = parseISODate(d);
-  const base = `יום ${WEEKDAYS[x.getUTCDay()]} · ${shortDate(d)}`;
-  return d === today ? `היום · ${base.replace("יום ", "")}` : i === 1 ? `מחר · ${base.replace("יום ", "")}` : base;
-};
+// בלי תאריכים במספרים – רק היום / מחר / שם היום
+const dayTitle = (d: string, today: string, i: number) =>
+  d === today ? "היום" : i === 1 ? "מחר" : `יום ${WEEKDAYS[parseISODate(d).getUTCDay()]}`;
 
 export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit }: {
   clientId: string; studioId: string; days: StoryDay[]; thumbs: Record<string, string>; today: string; canEdit: boolean;
@@ -32,8 +30,21 @@ export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit 
               <b className="w500">{dayTitle(d.date, today, i)}</b>
               {canEdit && <button className="edit" onClick={() => setAdding({ date: d.date })}>+ סטורי</button>}
             </div>
+            {/* סטוריז קבועים: רשימת סימון – עלה / לא עלה */}
+            {d.stories.some((s) => s.recurring) && (
+              <div className="note">
+                {d.stories.filter((s) => s.recurring).map((s) => (
+                  <div key={s.ref} className={`task${s.done ? " done" : ""}`}>
+                    <button className="box" aria-pressed={s.done} aria-label={s.done ? "עלה" : "לא עלה"} disabled={!canEdit}
+                      onClick={() => start(() => setStoryDoneOn(clientId, s.ref, d.date, !s.done))}>✓</button>
+                    <span className="tt">{s.title}</span>
+                    <span className="txt">{s.done ? "עלה" : "קבוע"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="story-strip">
-              {d.stories.map((s) => {
+              {d.stories.filter((s) => !s.recurring).map((s) => {
                 const thumb = s.media[0]?.thumb ? thumbs[s.media[0].thumb] : undefined;
                 return (
                   <button key={s.ref} className={`story${s.done ? " done" : ""}${s.recurring ? " rec" : ""}`} onClick={() => setOpen({ day: d.date, story: s })}
@@ -54,7 +65,7 @@ export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit 
       {open && (
         <Sheet onClose={() => setOpen(null)} label={open.story.title}>
           <h2>{open.story.title}</h2>
-          <div className="txt">{dayTitle(open.day, today, 0).replace("היום · ", "")} · {open.story.recurring ? "סטורי קבוע (מנוהל בגאנט)" : "סטורי חד-פעמי"}</div>
+          <div className="txt">{dayTitle(open.day, today, 0)} · {open.story.recurring ? "סטורי קבוע (מנוהל בגאנט)" : "סטורי חד-פעמי"}</div>
           {open.story.media.length > 0 && (
             <div className="media-strip">
               {open.story.media.map((m) => (
