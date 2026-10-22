@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Chevron } from "@/components/chevron";
 import { getContext } from "@/lib/context";
@@ -32,7 +33,8 @@ export default async function GanttPage({ params, searchParams }: PageProps<"/c/
 
   const monthItems = (items.data ?? []) as ContentItem[];
   const thumbs = await signPaths(monthItems.flatMap((i) => [i.thumb_path, ...(i.media ?? []).map((m) => m.thumb)]));
-  const clientRow = ctx.clients.find((c) => c.id === clientId)!;
+  const clientRow = ctx.clients.find((c) => c.id === clientId);
+  if (!clientRow) notFound(); // לקוח שאין גישה אליו (או שנמחק)
   const studioId = clientRow.studio_id;
   const brand = (clientRow.brand ?? {}) as Brand;
   const industry = (brand.industry as Industry) || guessIndustry([clientRow.name, brand.story, brand.audience].join(" "));

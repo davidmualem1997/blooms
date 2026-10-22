@@ -51,14 +51,15 @@ export function GanttBoard(p: Props) {
           <div className="calnavs">{p.nav}</div>
         </div>
         <div className="calgrid">
-          {WEEKDAYS.map((w) => <div key={w} className="calwd">{w.slice(0, 3)}</div>)}
+          {WEEKDAYS.map((w) => <div key={w} className="calwd">{w}</div>)}
           {Array.from({ length: first.getUTCDay() }, (_, i) => <div key={`b${i}`} className="calday blank" />)}
           {dates.map((d) => {
             const its = p.items.filter((i) => i.date === d);
             const ss = storiesOn(d);
             const wd = parseISODate(d).getUTCDay();
+            const special = p.special.some((e) => e.date === d); // חג / יום זיכרון – כל היום מסומן באפור
             return (
-              <button key={d} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}`} onClick={() => setDay(d)}
+              <button key={d} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}${special ? " hol" : ""}`} onClick={() => setDay(d)}
                 aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
                 <span className="cnum num">{Number(d.slice(8))}</span>
                 {p.special.filter((e) => e.date === d).map((e) => (

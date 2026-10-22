@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getContext, memberName } from "@/lib/context";
 import { israelToUTC, parseISODate, todayIL, toISODate } from "@/lib/dates";
 import type { Brand, ClientEvent, Meeting, Message, Task } from "@/lib/types";
@@ -28,7 +29,8 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
   const { clientId } = await params;
   const sp = await searchParams;
   const ctx = await getContext();
-  const client = ctx.clients.find((c) => c.id === clientId)!;
+  const client = ctx.clients.find((c) => c.id === clientId);
+  if (!client) notFound(); // לקוח שאין גישה אליו (או שנמחק)
   const today = todayIL();
 
   const supabase = await createClient();

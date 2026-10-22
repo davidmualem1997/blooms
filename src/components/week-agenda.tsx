@@ -19,8 +19,8 @@ export function WeekAgenda({ days, today, compact = false }: { days: AgendaDay[]
       {!compact && <div className="txt">{range}</div>}
       <div className={`cal wcal${compact ? " compact" : ""}`}>
         {days.map((d, i) => (
-          <div key={d.date} className={`cell${d.date === today ? " today" : ""}${d.date < today ? " past" : ""}`}>
-            <span className="wd-in">{WD[i].slice(0, 3)}</span>
+          <div key={d.date} className={`cell${d.date === today ? " today" : ""}${d.date < today ? " past" : ""}${d.entries.some((e) => e.kind === "holiday" || e.kind === "memorial") ? " hol" : ""}`}>
+            <span className="wd-in">{WD[i]}</span>
             <span className="cnum num">{Number(d.date.slice(8))}</span>
             {d.entries.map((e, k) => {
               const text = (
