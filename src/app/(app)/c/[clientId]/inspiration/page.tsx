@@ -22,7 +22,7 @@ export default async function InspirationPage({ params, searchParams }: PageProp
   const supabase = await createClient();
   const [{ data }, { data: briefs }] = await Promise.all([
     supabase.from("ideas").select("*, author:profiles!ideas_created_by_fkey(full_name)").eq("client_id", clientId).eq("month", `${m}-01`).order("created_at"),
-    supabase.from("briefs").select("id, title, shoot_date, location").eq("client_id", clientId).order("shoot_date", { ascending: false }),
+    supabase.from("briefs").select("id, title, shoot_date, location, status").eq("client_id", clientId).order("shoot_date", { ascending: false }),
   ]);
   const ideas = ((data ?? []) as (Idea & { author: { full_name: string } | null })[]).map((i) => ({ ...i, author: i.author?.full_name ?? "" }));
   const images = await signPaths(ideas.map((i) => i.image_path));
@@ -42,7 +42,7 @@ export default async function InspirationPage({ params, searchParams }: PageProp
         <div className="note">
           {(briefs ?? []).map((b) => (
             <Link key={b.id} href={`/c/${clientId}/briefs/${b.id}`} className="lnk">
-              <span>{b.title}<small style={{ direction: "rtl" }}>{[b.shoot_date ? b.shoot_date.split("-").reverse().join(".") : "", b.location].filter(Boolean).join(" · ")}</small></span>
+              <span>{b.title}{b.status === "draft" && <span className="tag draft-tag">טיוטה</span>}<small style={{ direction: "rtl" }}>{[b.shoot_date ? b.shoot_date.split("-").reverse().join(".") : "", b.location].filter(Boolean).join(" · ")}</small></span>
               <span className="arrow"><Chevron dir="forward" /></span>
             </Link>
           ))}

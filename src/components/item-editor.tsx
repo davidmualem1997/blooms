@@ -87,6 +87,15 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
     }));
   }
 
+  // העתקת הטקסט בלבד (בלי להוריד קובץ) – להדבקה באינסטגרם
+  async function copyCaption() {
+    setDlFor(null);
+    const text = caption.current?.value ?? "";
+    if (!text) return setToast("אין טקסט להעתקה");
+    try { await navigator.clipboard.writeText(text); setToast("הטקסט הועתק ✓"); }
+    catch { caption.current?.select(); setToast("סמנו והעתיקו את הטקסט"); }
+  }
+
   // הורדה לטלפון דרך חלון השיתוף (שמירה לתמונות / ישר לאינסטגרם). "עם הטקסט" – הטקסט מועתק ללוח ומצורף לשיתוף
   async function download(path: string, withText: boolean) {
     setDlFor(null);
@@ -141,8 +150,8 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
                 </button>
                 {dlFor === m.path && (
                   <div className="dl-menu" role="menu">
-                    <button type="button" role="menuitem" onClick={() => download(m.path, false)}>{m.kind === "video" ? "סרטון" : "תמונה"} בלבד</button>
-                    <button type="button" role="menuitem" onClick={() => download(m.path, true)}>עם הטקסט</button>
+                    <button type="button" role="menuitem" onClick={() => download(m.path, false)}>שמירת ה{m.kind === "video" ? "סרטון" : "תמונה"}</button>
+                    <button type="button" role="menuitem" onClick={() => copyCaption()}>העתקת הטקסט</button>
                   </div>
                 )}
               </div>

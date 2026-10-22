@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { ConfirmButton } from "@/components/admin-ui";
-import { deleteBrief, toggleEquipment, type BriefInput } from "../actions";
+import { deleteBrief, toggleEquipment, toggleShot, type BriefInput } from "../actions";
 import { BriefForm } from "../brief-form";
 
 // תצוגת בריף: כל מה שצריך ליום הצילום, עם רשימת ציוד לסימון והעתקה לשליחה בוואטסאפ
 export function BriefView({ clientId, brief, when, canEdit, editing }: { clientId: string; brief: BriefInput & { id: string }; when: string; canEdit: boolean; editing: boolean }) {
   const [, start] = useTransition();
   const [equipment, flip] = useOptimistic(brief.equipment, (s, i: number) => s.map((e, j) => (j === i ? { ...e, done: !e.done } : e)));
+  const [shots, flipShot] = useOptimistic(brief.shots, (s, i: number) => s.map((e, j) => (j === i ? { ...e, done: !e.done } : e)));
   const [copied, setCopied] = useState(false);
 
   if (editing && canEdit) return (<><h1 className="display-title">עריכת בריף</h1><BriefForm clientId={clientId} brief={brief} /></>);
@@ -17,7 +18,8 @@ export function BriefView({ clientId, brief, when, canEdit, editing }: { clientI
   const text = [
     `*${brief.title}*`, [when, brief.time_text].filter(Boolean).join(" | "), brief.location && `לוקיישן: ${brief.location}`, "",
     brief.goal, brief.feeling && `התחושה הרצויה: ${brief.feeling}`, "",
-    brief.shots.length ? "סרטונים ותמונות:\n" + brief.shots.map((s, i) => `${i + 1}. ${s.text}`).join("\n") : "", "",
+    brief.vision_board && `לוח השראה: ${brief.vision_board}`,
+    brief.shots.length ? "מה מצלמים:\n" + brief.shots.map((s, i) => `${i + 1}. ${s.text}${s.feeling ? ` (${s.feeling})` : ""}${s.ref ? `\n   השראה: ${s.ref}` : ""}`).join("\n") : "", "",
     brief.equipment.length ? "ציוד:\n" + brief.equipment.map((e) => `• ${e.text}${e.who ? ` – ${e.who}` : ""}`).join("\n") : "",
     brief.wardrobe && `\nלבוש: ${brief.wardrobe}`, brief.schedule && `\nלוחות זמנים:\n${brief.schedule}`,
     brief.participants && `\nמגיעים: ${brief.participants}`,
@@ -25,7 +27,8 @@ export function BriefView({ clientId, brief, when, canEdit, editing }: { clientI
 
   return (
     <article className="brief">
-      <h1 className="display-title">{brief.title}</h1>
+      <h1 className="display-title">{brief.title}{brief.status === "draft" && <span className="pill draft-pill">טיוטה</span>}</h1>
+      {brief.vision_board && <a className="vision" href={/^https?:/i.test(brief.vision_board) ? brief.vision_board : `https://${brief.vision_board}`} target="_blank" rel="noopener">◎ לוח ההשראה ↗</a>}
       <div className="brief-meta">
         {when && <span className="hchip">{when}</span>}
         {brief.time_text && <span className="hchip num">{brief.time_text}</span>}
@@ -34,9 +37,21 @@ export function BriefView({ clientId, brief, when, canEdit, editing }: { clientI
       {brief.goal && <p className="pre lead">{brief.goal}</p>}
       {brief.feeling && <p className="txt big">התחושה הרצויה: <b className="w500">{brief.feeling}</b></p>}
 
-      {brief.shots.length > 0 && (
-        <section className="sec"><div className="label dotted">סרטונים ותמונות</div>
-          <ol className="shots">{brief.shots.map((s, i) => <li key={i}>{s.text}</li>)}</ol>
+      {shots.length > 0 && (
+        <section className="sec"><div className="sechead"><div className="label dotted">מה מצלמים</div><span className="txt num">{shots.filter((x) => x.done).length}/{shots.length} צולמו</span></div>
+          <div className="note">
+            {shots.map((x, i) => (
+              <div key={i} className={`shotrow${x.done ? " done" : ""}`}>
+                <button className="rem-dot" aria-pressed={!!x.done} aria-label={x.done ? "צולם" : "סימון שצולם"} disabled={!canEdit}
+                  onClick={() => start(async () => { flipShot(i); await toggleShot(clientId, brief.id, i); })} />
+                <span className="shotrow-body">
+                  <span className="shotrow-t">{x.text}</span>
+                  {x.feeling && <span className="txt">{x.feeling}</span>}
+                </span>
+                {x.ref ? <a className="shot-open" href={x.ref} target="_blank" rel="noopener">השראה ↗</a> : <span />}
+              </div>
+            ))}
+          </div>
         </section>
       )}
       {equipment.length > 0 && (
