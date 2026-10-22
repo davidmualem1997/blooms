@@ -45,6 +45,18 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
   const [pending, start] = useTransition();
   const caption = useRef<HTMLTextAreaElement>(null);
   const [dlFor, setDlFor] = useState<string | null>(null);
+  const [cover, setCover] = useState<{ path: string; thumb: string | null } | null>(it?.cover ?? null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
+  async function addCover(file?: File) {
+    if (!file) return;
+    setCoverBusy(true);
+    try {
+      const entry = await uploadMedia(file, studioId, clientId, () => {});
+      setCover({ path: entry.path, thumb: entry.thumb });
+      setCoverPreview(URL.createObjectURL(file));
+    } finally { setCoverBusy(false); }
+  }
   const [toast, setToast] = useState("");
   const live = status === "live";
 
@@ -55,6 +67,7 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
         id: it?.id,
         client_id: clientId,
         media: media.map(({ path, thumb, kind }) => ({ path, thumb, kind })),
+        cover,
         stats: status === "live" ? readStats(form) : it?.stats,
         date: String(form.get("date")) || target.date,
         time: String(form.get("time") ?? "") || null,
@@ -112,21 +125,6 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
   return (
     <Sheet onClose={onClose} label={it ? "עריכת תוכן" : "תוכן חדש"} busy={pending}>
       <form action={submit} className="stack">
-        {/* כותרת = נושא הפוסט (מה שמופיע בגאנט). ריק → השורה הראשונה של הטקסט. ליד: הורדה / העתקת טקסט */}
-        <div className="ed-head">
-          <input name="title" className="ed-title" defaultValue={it?.title ?? target.preset?.title ?? ""} placeholder={TYPE_LABEL[type]} aria-label="נושא" />
-          <div className="ed-dl">
-            <button type="button" className="ed-dl-btn" onClick={() => setDlFor(dlFor ? null : "all")} aria-label="הורדה" aria-expanded={!!dlFor}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
-            </button>
-            {dlFor && (
-              <div className="dl-menu" role="menu">
-                {media.length > 0 && <button type="button" role="menuitem" onClick={() => saveAll()}>שמירת {media.length > 1 ? `הקבצים (${media.length})` : media[0].kind === "video" ? "הסרטון" : "התמונה"}</button>}
-                <button type="button" role="menuitem" onClick={() => copyCaption()}>העתקת הטקסט</button>
-              </div>
-            )}
-          </div>
-        </div>
         {live && (
           <div className="live-banner">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -160,6 +158,36 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
             <input type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             <span>+</span><small>תמונה או סרטון</small>
           </label>
+        </div>
+        {/* תמונת קאבר: מה שיופיע בפיד ובגאנט כתמונה הראשית */}
+        <div className="cover-row">
+          {cover ? (
+            <div className="mtile cover-tile">
+              {/* eslint-disable-next-line @next/next/no-img-element -- קישור חתום זמני או blob מקומי */}
+              <img src={coverPreview ?? (cover.thumb ? thumbs[cover.thumb] : undefined) ?? thumbs[cover.path]} alt="" />
+              <span className="mbadge">קאבר</span>
+              <button type="button" className="mx" aria-label="הסרת הקאבר" onClick={() => { setCover(null); setCoverPreview(null); }}>×</button>
+            </div>
+          ) : null}
+          <label className="cover-add">
+            <input type="file" accept="image/*" hidden onChange={(e) => { addCover(e.target.files?.[0]); e.target.value = ""; }} />
+            {coverBusy ? "מעלים…" : cover ? "החלפת קאבר" : "+ תמונת קאבר"}
+          </label>
+        </div>
+        {/* כותרת = נושא הפוסט (מה שמופיע בגאנט). ריק → השורה הראשונה של הטקסט. ליד: הורדה / העתקת טקסט */}
+        <div className="ed-head">
+          <input name="title" className="ed-title" defaultValue={it?.title ?? target.preset?.title ?? ""} placeholder={TYPE_LABEL[type]} aria-label="נושא" />
+          <div className="ed-dl">
+            <button type="button" className="ed-dl-btn" onClick={() => setDlFor(dlFor ? null : "all")} aria-label="הורדה" aria-expanded={!!dlFor}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" /></svg>
+            </button>
+            {dlFor && (
+              <div className="dl-menu" role="menu">
+                {media.length > 0 && <button type="button" role="menuitem" onClick={() => saveAll()}>שמירת {media.length > 1 ? `הקבצים (${media.length})` : media[0].kind === "video" ? "הסרטון" : "התמונה"}</button>}
+                <button type="button" role="menuitem" onClick={() => copyCaption()}>העתקת הטקסט</button>
+              </div>
+            )}
+          </div>
         </div>
         <textarea ref={caption} name="caption" className="caption-box" defaultValue={it?.caption ?? (it ? "" : target.preset?.title ?? "")} placeholder="הטקסט שיעלה עם הפוסט" aria-label="טקסט" />
         <div className="dt-row">

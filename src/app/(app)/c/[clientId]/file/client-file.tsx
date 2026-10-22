@@ -302,8 +302,7 @@ export function ClientFile(p: Props) {
               <div key={t.id} className={`task${t.done ? " done" : ""}${t.urgent ? " urgent-task" : ""}`}>
                 <button className="box" aria-pressed={t.done} aria-label="בוצע" onClick={() => start(() => updateTask(p.clientId, t.id, { done: !t.done }))}>✓</button>
                 <button className="tt task-open" onClick={() => setTaskFor(t)}>
-                  {t.urgent && <span className="urgent-dot" aria-label="דחוף">דחוף</span>}
-                  {t.title}
+                  <span className="task-line">{t.urgent && <span className="urgent-dot">דחוף</span>}{t.title}</span>
                   {t.description && <small>{t.description}</small>}
                 </button>
                 <span className="tag">{teamName(t.assignee_id)}</span>

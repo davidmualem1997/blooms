@@ -46,6 +46,9 @@ export function GanttBoard(p: Props) {
 
   return (
     <>
+      <MonthList clientId={p.clientId} month={p.month} kind="content" items={p.focus} canEdit={p.canEdit}
+        title="דגשים לחודש" placeholder="דגש חדש לחודש" />
+
       {/* לוח החודש: משטח לבן רציף אחד, בלי רווחים בין הימים – רק קו דק בין השבועות */}
       <div className="calcard">
         <div className="calhead">
@@ -62,7 +65,7 @@ export function GanttBoard(p: Props) {
             // רק מועדי ישראל (חגים וימי זיכרון) צובעים את כל היום באפור; ימים בינלאומיים/של התחום – רק תגית
             const special = p.special.some((e) => e.date === d && (e.kind === "holiday" || e.kind === "memorial"));
             return (
-              <button key={d} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}${special ? " hol" : ""}`} onClick={() => setDay(d)}
+              <div key={d} role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDay(d)} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}${special ? " hol" : ""}`} onClick={() => setDay(d)}
                 aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
                 <span className="cnum num">{Number(d.slice(8))}</span>
                 {p.special.filter((e) => e.date === d).map((e) => (
@@ -76,8 +79,9 @@ export function GanttBoard(p: Props) {
                     <ContentIcon kind={i.type} size={10} /><span>{cut(i.title)}</span>
                   </span>
                 ))}
-                {ss.length > 0 && <span className="ctg st"><ContentIcon kind="story" size={10} /><span>{ss.length === 1 ? ss[0].title : `${ss.length} סטוריז`}</span></span>}
-              </button>
+                {/* כל סטורי בנפרד, כמו פוסטים וטיקטוק */}
+                {ss.map((x) => <span key={x.ref} className="ctg st"><ContentIcon kind="story" size={10} /><span>{cut(x.title)}</span></span>)}
+              </div>
             );
           })}
         </div>
@@ -89,8 +93,7 @@ export function GanttBoard(p: Props) {
         <span><span className="hsw ev" /><ContentIcon kind="event" size={12} /> אירועים ומועדים</span>
       </div>
 
-      <MonthList clientId={p.clientId} month={p.month} kind="content" items={p.focus} canEdit={p.canEdit}
-        title="דגשים לחודש" placeholder="דגש חדש לחודש" />
+
 
       <section className="sec">
         <div className="label dotted">סטוריז קבועים</div>
