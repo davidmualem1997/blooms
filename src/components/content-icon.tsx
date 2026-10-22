@@ -1,5 +1,5 @@
 // אייקון לכל סוג תוכן/אירוע – קו דק בסגנון SF Symbols, צבע לפי הטקסט שמסביב
-export type IconKind = "post" | "reel" | "tiktok" | "story" | "meeting" | "team" | "event" | "holiday" | "memorial" | "deadline" | "task";
+export type IconKind = "post" | "reel" | "tiktok" | "story" | "meeting" | "team" | "event" | "holiday" | "memorial" | "deadline" | "task" | "chart";
 
 const PATHS: Record<IconKind, React.ReactNode> = {
   post: <><rect x="3.5" y="3.5" width="17" height="17" rx="4" /><circle cx="9" cy="9.5" r="1.6" /><path d="M20.5 15.5l-4.5-4.5-8.5 9" /></>,
@@ -12,6 +12,7 @@ const PATHS: Record<IconKind, React.ReactNode> = {
   holiday: <><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" /><circle cx="12" cy="12" r="2.6" /></>,
   memorial: <path d="M12 4c2 2.6 3 4.7 3 6.4a3 3 0 0 1-6 0C9 8.7 10 6.6 12 4zM12 13.4V20M8.5 20h7" />,
   deadline: <><path d="M5.5 20.5V4" /><path d="M5.5 4.5h11l-2.2 3.5 2.2 3.5h-11" /></>,
+  chart: <><path d="M4 19.5h16" /><path d="M7 16v-5M12 16V7M17 16v-8" /></>,
   task: <><rect x="4" y="4" width="16" height="16" rx="5" /><path d="M8.5 12.2l2.4 2.3 4.6-4.9" /></>,
 };
 

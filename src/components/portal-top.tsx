@@ -3,7 +3,7 @@ import { ReportChip } from "./data-report";
 import { MonthList, type FocusItem } from "./month-list";
 
 // החלק העליון בדף הבית של לקוח (ללקוח ולצוות): דוח נתונים ורעיונות שיווקיים לחודש
-export async function PortalTop({ clientId, today, canEdit }: { clientId: string; today: string; canEdit: boolean }) {
+export async function PortalTop({ clientId, today, canEdit, showReport = true }: { clientId: string; today: string; canEdit: boolean; showReport?: boolean }) {
   const month = today.slice(0, 7) + "-01";
   const supabase = await createClient();
   const [{ data: marketing }] = await Promise.all([
@@ -11,7 +11,7 @@ export async function PortalTop({ clientId, today, canEdit }: { clientId: string
   ]);
   return (
     <>
-      <div className="sec"><ReportChip clientId={clientId} today={today} isStaff={canEdit} /></div>
+      {showReport && <div className="sec"><ReportChip clientId={clientId} today={today} isStaff={canEdit} /></div>}
       <MonthList clientId={clientId} month={month} kind="marketing" items={(marketing ?? []) as FocusItem[]} canEdit={canEdit}
         title="רעיונות ודגשים שיווקיים לחודש" placeholder="למשל: שיתוף פעולה עם משפיענים, מבצע הפי האוור" />
     </>

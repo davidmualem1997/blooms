@@ -47,12 +47,18 @@ export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit 
               {d.stories.filter((s) => !s.recurring).map((s) => {
                 const thumb = s.media[0]?.thumb ? thumbs[s.media[0].thumb] : undefined;
                 return (
-                  <button key={s.ref} className={`story${s.done ? " done" : ""}${s.recurring ? " rec" : ""}`} onClick={() => setOpen({ day: d.date, story: s })}
-                    style={thumb ? { backgroundImage: `url(${thumb})` } : undefined} aria-label={s.title}>
-                    <span className="story-title">{s.title}</span>
-                    {s.recurring && <span className="story-badge">קבוע</span>}
-                    {s.done && <span className="story-done">✓</span>}
-                  </button>
+                  <div key={s.ref} className="story-wrap">
+                    <button className={`story${s.done ? " done" : ""}${s.recurring ? " rec" : ""}`} onClick={() => setOpen({ day: d.date, story: s })}
+                      style={thumb ? { backgroundImage: `url(${thumb})` } : undefined} aria-label={s.title}>
+                      <span className="story-title">{s.title}</span>
+                      {s.recurring && <span className="story-badge">קבוע</span>}
+                    </button>
+                    {/* סימון "עלה" ישר על הסטורי, בלי לפתוח אותו */}
+                    <button className={`story-tick${s.done ? " on" : ""}`} aria-pressed={s.done} aria-label={s.done ? "עלה – ביטול הסימון" : "סימון שעלה"} disabled={!canEdit}
+                      onClick={() => start(() => setStoryDoneOn(clientId, s.ref, d.date, !s.done))}>
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                    </button>
+                  </div>
                 );
               })}
               {!d.stories.length && <span className="txt">אין סטוריז</span>}

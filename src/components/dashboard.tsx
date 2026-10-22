@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Chevron } from "./chevron";
 import { CoverEdit, LogoEdit } from "./hero-brand-edit";
 import { memberName, type AppContext } from "@/lib/context";
-import { longToday, shortDate, todayIL } from "@/lib/dates";
+import { israelToUTC, longToday, shortDate, todayIL } from "@/lib/dates";
 import { signPaths } from "@/lib/media-server";
 import { createClient } from "@/lib/supabase/server";
 import { loadToday } from "@/lib/today";
@@ -16,17 +16,29 @@ import { TodoList } from "./todo-list";
 import { TrendsCard } from "./trends-card";
 import { WeekAgenda } from "./week-agenda";
 import { PortalTop } from "./portal-top";
+import { TodayDetail } from "./today-detail";
+import { ContentIcon, type IconKind } from "./content-icon";
 
 // דף הבית של הצוות: דאשבורד כללי (כל הלקוחות) או "היום" בפורטל של לקוח אחד
-export async function Dashboard({ ctx, clients, portal }: { ctx: AppContext; clients: Client[]; portal: boolean }) {
+export type PortalTab = "today" | "tasks" | "meetings" | "events" | "data";
+export const PORTAL_TABS: { k: PortalTab; l: string; icon: IconKind }[] = [
+  { k: "today", l: "היום", icon: "holiday" }, { k: "tasks", l: "משימות", icon: "task" }, { k: "meetings", l: "פגישות", icon: "meeting" },
+  { k: "events", l: "אירועים", icon: "event" }, { k: "data", l: "נתונים", icon: "chart" },
+];
+
+// בפורטל של לקוח (צוות): טאבים מתחת לקאבר. "היום" הוא ברירת המחדל; בשאר הטאבים מוצג tabContent
+export async function Dashboard({ ctx, clients, portal, tab = "today", tabContent }: { ctx: AppContext; clients: Client[]; portal: boolean; tab?: PortalTab; tabContent?: React.ReactNode }) {
   const today = todayIL();
   const supabase = await createClient();
-  const [data, week, teamMeetings, recentRes] = await Promise.all([
+  const startOfDay = israelToUTC(today, "00:00"), endOfDay = israelToUTC(today, "23:59");
+  const [data, week, teamMeetings, recentRes, meetingsToday, eventsToday] = await Promise.all([
     loadToday(clients, today),
     loadWeek(clients, today),
     portal ? Promise.resolve({ data: [] }) : supabase.from("team_meetings").select("*").order("starts_at", { ascending: false }).limit(20),
     // בפורטל: שלוש הפניות האחרונות של הלקוח, כמו בדף של הלקוח
     portal ? supabase.from("messages").select("*").eq("client_id", clients[0].id).order("updated_at", { ascending: false }).limit(3) : Promise.resolve({ data: [] }),
+    portal ? supabase.from("meetings").select("id, starts_at, kind, location").eq("client_id", clients[0].id).gte("starts_at", startOfDay).lte("starts_at", endOfDay).order("starts_at") : Promise.resolve({ data: [] }),
+    portal ? supabase.from("client_events").select("id, title, description").eq("client_id", clients[0].id).eq("date", today) : Promise.resolve({ data: [] }),
   ]);
   const recent = (recentRes.data ?? []) as Message[];
   const isOwner = ctx.role === "owner";
@@ -35,7 +47,9 @@ export async function Dashboard({ ctx, clients, portal }: { ctx: AppContext; cli
     const b = c.brand as { logo_path?: string; cover_path?: string };
     return [b?.logo_path, portal ? b?.cover_path : undefined];
   });
-  const todayThumbs = data.perClient.flatMap((p) => p.rows.flatMap((r) => (r.kind === "item" ? r.item.media.map((m) => m.thumb) : [])));
+  const todayThumbs = data.perClient.flatMap((p) => p.rows.flatMap((r) => (r.kind === "item"
+    ? [...r.item.media.map((m) => m.thumb), r.item.thumb_path, ...(r.item.thumb_path ? [] : r.item.media.filter((m) => m.kind === "video").map((m) => m.path))]
+    : [])));
   const signed = await signPaths([...brandPaths, ...todayThumbs]);
 
   // מנהלת הסטודיו רואה בנפרד את הלקוחות שלה ואת מה שקורה אצל כל מנהל/ת לקוחות
@@ -80,7 +94,24 @@ export async function Dashboard({ ctx, clients, portal }: { ctx: AppContext; cli
         </div>
       )}
 
-      {portal && <PortalTop clientId={client.id} today={today} canEdit />}
+      {portal && (
+        <nav className="ptabs" aria-label="נושאים">
+          {PORTAL_TABS.map((t) => (
+            <Link key={t.k} href={t.k === "today" ? `/c/${client.id}` : `/c/${client.id}?tab=${t.k}`} className="ptab" aria-current={tab === t.k ? "page" : undefined} scroll={false}>
+              <ContentIcon kind={t.icon} size={20} /><span>{t.l}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
+      {portal && tab !== "today" ? tabContent : (<>
+
+      {portal && (
+        <TodayDetail clientId={client.id} studioId={client.studio_id} rows={data.perClient[0]?.rows ?? []} thumbs={signed}
+          meetings={(meetingsToday.data ?? []) as { id: string; starts_at: string; kind: string; location: string }[]}
+          events={(eventsToday.data ?? []) as { id: string; title: string; description: string | null }[]} />
+      )}
+
+      {portal && <PortalTop clientId={client.id} today={today} canEdit showReport={false} />}
 
       <WeekAgenda days={week} today={today} />
 
@@ -88,16 +119,16 @@ export async function Dashboard({ ctx, clients, portal }: { ctx: AppContext; cli
         <p className="empty sec">עוד אין לקוחות. <Link className="edit" href="/clients/new">הוספת לקוח ראשון</Link></p>
       )}
 
-      <section className="sec">
+      {!portal && <section className="sec">
         <div className="sechead">
-          <div className="label dotted">{isOwner && !portal ? "הלקוחות שלי · להעלות היום" : "להעלות היום"}</div>
+          <div className="label dotted">{isOwner ? "הלקוחות שלי · להעלות היום" : "להעלות היום"}</div>
           <span className="txt num">{done}/{total}</span>
         </div>
         {mine.filter((p) => p.rows.length).map((p) => (
           <TodoList key={p.client.id} clientId={p.client.id} clientName={p.client.name} color={p.client.color} rows={p.rows} linkToPortal={!portal} thumbs={signed} />
         ))}
         {total === 0 && <p className="empty">אין העלאות היום</p>}
-      </section>
+      </section>}
 
       {others.some((p) => p.rows.length) && (
         <section className="sec">
@@ -158,6 +189,7 @@ export async function Dashboard({ ctx, clients, portal }: { ctx: AppContext; cli
       )}
 
       <IdeaComposer clients={clients.map((c) => ({ id: c.id, name: c.name }))} today={today} isClient={false} />
+      </>)}
     </>
   );
 }

@@ -5,15 +5,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export type Equipment = { text: string; who: string; done: boolean };
+export type Shot = { text: string; ref?: string; feeling?: string; done?: boolean };
 export type BriefInput = {
   id?: string; client_id: string; title: string; shoot_date: string | null; time_text: string; location: string;
-  goal: string; feeling: string; shots: { text: string }[]; equipment: Equipment[];
+  goal: string; feeling: string; shots: Shot[]; equipment: Equipment[];
   wardrobe: string; schedule: string; participants: string; links: string;
+  vision_board?: string; status?: "draft" | "final";
 };
 
 export async function saveBrief(input: BriefInput) {
   const supabase = await createClient();
-  const { id, ...row } = { ...input, title: input.title.trim() || "בריף צילומים" };
+  const { id, ...row } = { ...input, title: input.title.trim() || (input.status === "draft" ? "טיוטת בריף" : "בריף צילומים") };
   const { data: auth } = await supabase.auth.getUser();
   const res = id
     ? await supabase.from("briefs").update(row).eq("id", id).select("id").single()
@@ -36,4 +38,13 @@ export async function deleteBrief(clientId: string, briefId: string) {
   await supabase.from("briefs").delete().eq("id", briefId);
   revalidatePath(`/c/${clientId}`, "layout");
   redirect(`/c/${clientId}/inspiration`);
+}
+
+// סימון צילום שבוצע ביום הצילום
+export async function toggleShot(clientId: string, briefId: string, index: number) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("briefs").select("shots").eq("id", briefId).single();
+  const list = ((data?.shots ?? []) as Shot[]).map((x, i) => (i === index ? { ...x, done: !x.done } : x));
+  await supabase.from("briefs").update({ shots: list }).eq("id", briefId);
+  revalidatePath(`/c/${clientId}/briefs/${briefId}`);
 }

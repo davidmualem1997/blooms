@@ -1,10 +1,8 @@
-import { notFound } from "next/navigation";
-import { getContext, memberName } from "@/lib/context";
-import { israelToUTC, parseISODate, todayIL, toISODate } from "@/lib/dates";
-import type { Brand, ClientEvent, Meeting, Message, Task } from "@/lib/types";
+import { redirect } from "next/navigation";
+import { memberName } from "@/lib/context";
+import { israelToUTC, parseISODate, toISODate } from "@/lib/dates";
 import { ClientFile, type FileTab } from "./client-file";
-import { guessIndustry, type Industry } from "@/lib/holidays";
-import { signPaths } from "@/lib/media-server";
+import { loadFileData } from "./load";
 import { createClient } from "@/lib/supabase/server";
 import { ConfirmButton, IndustryPicker, InviteForm, ManagerPicker } from "@/components/admin-ui";
 import { cancelInvite, removeClientUser } from "../../../admin-actions";
@@ -28,25 +26,15 @@ export const maxDuration = 120;
 export default async function ClientFilePage({ params, searchParams }: PageProps<"/c/[clientId]/file">) {
   const { clientId } = await params;
   const sp = await searchParams;
-  const ctx = await getContext();
-  const client = ctx.clients.find((c) => c.id === clientId);
-  if (!client) notFound(); // לקוח שאין גישה אליו (או שנמחק)
-  const today = todayIL();
-
+  const { ctx, client, industry, base: fileProps } = await loadFileData(clientId);
+  const today = fileProps.today;
+  const brand = fileProps.brand;
   const supabase = await createClient();
   const isOwner = ctx.role === "owner";
-  const isStaff = ctx.role !== "client";
-  const [{ data: tasks }, { data: meetings }, { data: openMessages }, { data: events }] = await Promise.all([
-    isStaff ? supabase.from("tasks").select("id, title, assignee_id, done").eq("client_id", clientId).order("created_at") : Promise.resolve({ data: [] }),
-    supabase.from("meetings").select("id, kind, starts_at, location, extra_topics, summary").eq("client_id", clientId).order("starts_at"),
-    supabase.from("messages").select("*").eq("client_id", clientId).or("status.eq.to_meeting,and(kind.eq.call,status.neq.done)").order("created_at"),
-    supabase.from("client_events").select("*").eq("client_id", clientId).gte("date", today).order("date"),
-  ]);
-  const brand = (client.brand ?? {}) as Brand;
-  const evs = (events ?? []) as ClientEvent[];
-  const images = await signPaths([brand.cover_path, brand.logo_path, ...(brand.elements ?? []), ...evs.flatMap((e) => (e.images ?? []).map((i) => i.thumb))]);
-  const industry = (brand.industry as Industry) || guessIndustry([client.name, brand.story, brand.audience].join(" "));
+  const isStaff = fileProps.isStaff;
 
+  // לצוות פגישות ואירועים נמצאים בדף הבית של הלקוח – קישורים ישנים (התראות, פיד הפעילות) עוברים לשם
+  if (isStaff && (sp.tab === "meetings" || sp.tab === "events")) redirect(`/c/${clientId}?tab=${sp.tab}`);
   const tabs: FileTab[] = ["general", "brand", "ops", "events", "meetings", "contacts", "connections", "settings"];
   const initialTab = tabs.includes(sp.tab as FileTab) && (sp.tab !== "settings" || isOwner) ? (sp.tab as FileTab) : "general";
   let settings: React.ReactNode = undefined;
@@ -157,11 +145,5 @@ export default async function ClientFilePage({ params, searchParams }: PageProps
     </>
   );
 
-  return (
-    <ClientFile clientName={client.name} initialTab={initialTab} settings={settings} connections={connections}
-      clientId={clientId} studioId={client.studio_id} brand={brand} isStaff={isStaff} isVenue={industry === "food" || industry === "retail"}
-      userId={ctx.userId} images={images} today={today} events={evs}
-      team={ctx.team.map((t) => ({ id: t.id, name: t.full_name || memberName(ctx, t.id) }))}
-      tasks={(tasks ?? []) as Task[]} meetings={(meetings ?? []) as Meeting[]} openMessages={(openMessages ?? []) as Message[]} />
-  );
+  return <ClientFile {...fileProps} initialTab={initialTab} settings={settings} connections={connections} />;
 }

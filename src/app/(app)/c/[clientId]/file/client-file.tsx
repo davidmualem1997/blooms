@@ -18,11 +18,13 @@ const TABS: { k: FileTab; l: string }[] = [
   { k: "events", l: "אירועים" }, { k: "meetings", l: "פגישות" }, { k: "contacts", l: "אנשי קשר" }, { k: "connections", l: "חיבורים" },
 ];
 
+export type EmbedPart = "tasks" | "events" | "meetings";
 type Props = {
   clientName: string;
-  initialTab: FileTab;
+  initialTab?: FileTab;
+  embed?: EmbedPart; // מוצג בתוך דף הבית: רק החלק הזה, בלי כותרת וטאבים
+  connections?: React.ReactNode;
   settings?: React.ReactNode; // "הגדרות" – רק למנהלת הסטודיו
-  connections: React.ReactNode; // "חיבורים": קישורי BLOOMS ומקורות נתונים
   clientId: string;
   studioId: string;
   brand: Brand;
@@ -43,6 +45,21 @@ type FormState = { title: string; fields: Field[]; onSave: (v: Record<string, st
 
 const KIND_LABEL = { meet: "פגישה", call: "שיחת טלפון", zoom: "זום" } as const;
 const lines = (s?: string) => (s ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+// ערכים / קהל יעד: הכותרת של כל ערך מודגשת
+function headed(text?: string) {
+  const rows = (text ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+  if (!rows.length) return <span className="txt">עוד לא מולא</span>;
+  return (
+    <div className="headed">
+      {rows.map((r, i) => {
+        const m = r.match(/^(.{2,40}?)\s*[–—:-]\s+(.+)$/);
+        if (m) return <p key={i}><b>{m[1]}</b> – {m[2]}</p>;
+        const isHead = r.length <= 40 && !/[.!?]$/.test(r) && (rows[i + 1]?.length ?? 0) > r.length;
+        return isHead ? <p key={i}><b>{r}</b></p> : <p key={i}>{r}</p>;
+      })}
+    </div>
+  );
+}
 const fixUrl = (u: string) => (!u ? "" : /^https?:\/\//.test(u) ? u : `https://${u}`);
 const copy = (t: string) => navigator.clipboard?.writeText(t);
 // שם קצר מתחת לאייקון ("קאנבה – דרושים" ← "דרושים"); השם המלא מופיע בריחוף
@@ -67,11 +84,13 @@ const iconFor = (label: string, url: string) =>
 
 // תיק לקוח כ-Client Hub: טאבים ברורים במקום גלילה ארוכה אחת
 export function ClientFile(p: Props) {
-  const [tab, setTab] = useState<FileTab>(p.initialTab);
+  const [tab, setTab] = useState<FileTab>(p.initialTab ?? "general");
+  const shown: string = p.embed ?? tab;
   const [form, setForm] = useState<FormState>(null);
   const [summaryFor, setSummaryFor] = useState<Meeting | null>(null);
   const [eventFor, setEventFor] = useState<ClientEvent | "new" | null>(null);
   const [editLinks, setEditLinks] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
   const [, start] = useTransition();
   const b = p.brand;
   const patch = (x: Partial<Brand>) => start(() => updateBrand(p.clientId, x));
@@ -99,12 +118,15 @@ export function ClientFile(p: Props) {
     </details>
   );
 
-  const tabs = p.settings ? [...TABS, { k: "settings" as const, l: "הגדרות" }] : TABS;
+  // לצוות: פגישות ואירועים עברו לדף הבית של הלקוח (טאבים למעלה). ללקוח הם נשארים כאן
+  const base = p.isStaff ? TABS.filter((t) => t.k !== "events" && t.k !== "meetings") : TABS;
+  const tabs = p.settings ? [...base, { k: "settings" as const, l: "הגדרות" }] : base;
   const main = b.contacts?.[0];
   const summary = (b.story ?? "").split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 2).join(" ");
 
   return (
     <>
+      {!p.embed && (<>
       <div className="phead">
         <h1 className="display-title">{p.clientName}</h1>
         <div className="txt">תיק לקוח · מידע ומסמכים</div>
@@ -114,8 +136,9 @@ export function ClientFile(p: Props) {
           <button key={t.k} aria-current={tab === t.k ? "page" : undefined} onClick={() => { setTab(t.k); history.replaceState(null, "", `?tab=${t.k}`); }}>{t.l}</button>
         ))}
       </nav>
+      </>)}
 
-      {tab === "general" && (<>
+      {shown === "general" && (<>
       {p.isStaff && <PdfImport clientId={p.clientId} studioId={p.studioId} brand={b} />}
       {/* קישורים מהירים: רשתות, תמונות וחומרים */}
       <div className="quick">
@@ -157,8 +180,9 @@ export function ClientFile(p: Props) {
       <section className="sec">
         <div className="label dotted">על העסק</div>
         <div className="card">
-          {summary ? <p className="pre">{summary.length > 260 ? summary.slice(0, 257) + "…" : summary}</p> : <span className="txt">עוד לא נכתב סיפור</span>}
-          <button className="edit" onClick={() => setTab("brand")}>לסיפור המלא ולספר המותג</button>
+          {/* "עוד" פותח את כל הסיפור במקום */}
+          {b.story ? <p className="pre">{storyOpen || (b.story?.length ?? 0) <= 260 ? b.story : summary.slice(0, 257) + "…"}</p> : <span className="txt">עוד לא נכתב סיפור</span>}
+          {(b.story?.length ?? 0) > 260 && <button className="edit more-btn" onClick={() => setStoryOpen((o) => !o)}>{storyOpen ? "פחות" : "עוד"}</button>}
         </div>
       </section>
 
@@ -175,14 +199,14 @@ export function ClientFile(p: Props) {
       )}
 
       </>)}
-      {tab === "brand" && (<>
+      {shown === "brand" && (<>
       {/* אפיון */}
       <section className="sec">
         <div className="label dotted">אפיון</div>
         <div className="accs">
           {acc("הסיפור", ["story"], [""], pre(b.story))}
-          {acc("ערכים", ["values"], ["שורה לכל ערך"], pre(b.values))}
-          {acc("קהל יעד", ["audience"], [""], pre(b.audience))}
+          {acc("ערכים", ["values"], ["שורה לכל ערך"], headed(b.values))}
+          {acc("קהל יעד", ["audience"], [""], headed(b.audience))}
           {acc("איך מדברים", ["tone", "dos", "donts", "examples"], ["טון", "כן (שורה לכל כלל)", "לא (שורה לכל כלל)", "איך זה נשמע"], (
             <>
               {pre(b.tone)}
@@ -210,12 +234,11 @@ export function ClientFile(p: Props) {
               })}>תשובה חדשה</button>
             </div>
           </details>
-          {acc("פעולות שיווקיות קבועות", ["recurring"], [""], pre(b.recurring))}
         </div>
       </section>
 
       </>)}
-      {tab === "ops" && (<>
+      {shown === "ops" && (<>
       {/* שעות פתיחה, ולמסעדה או חנות גם הזמנת מקום, תפריט וניווט */}
       <section className="sec">
         <div className="card">
@@ -264,11 +287,11 @@ export function ClientFile(p: Props) {
       </section>
 
       </>)}
-      {tab === "brand" && (<>
+      {shown === "brand" && (<>
       <BrandBook p={p} onPatch={patch} />
       </>)}
 
-      {tab === "ops" && (<>
+      {shown === "tasks" && (<>
       {/* משימות צוות – רק לצוות */}
       {p.isStaff && (
         <section className="sec">
@@ -293,7 +316,7 @@ export function ClientFile(p: Props) {
       )}
 
       </>)}
-      {tab === "events" && (<>
+      {shown === "events" && (<>
       {/* אירועים קרובים */}
       <section className="sec">
         <div className="sechead"><div className="label dotted">אירועים קרובים</div>
@@ -331,7 +354,7 @@ export function ClientFile(p: Props) {
       </section>
 
       </>)}
-      {tab === "meetings" && (<>
+      {shown === "meetings" && (<>
       {/* פגישות */}
       <section className="sec">
         <div className="sechead"><div className="label dotted">פגישות</div>
@@ -397,7 +420,7 @@ export function ClientFile(p: Props) {
       </section>
 
       </>)}
-      {tab === "contacts" && (<>
+      {shown === "contacts" && (<>
       {/* אנשי קשר – בתחתית */}
       <section className="sec">
         <div className="card">
@@ -420,8 +443,8 @@ export function ClientFile(p: Props) {
       </section>
 
       </>)}
-      {tab === "connections" && p.connections}
-      {tab === "settings" && p.settings}
+      {shown === "connections" && p.connections}
+      {shown === "settings" && p.settings}
 
       {form && <FormSheet form={form} onClose={() => setForm(null)} />}
       {summaryFor && (
