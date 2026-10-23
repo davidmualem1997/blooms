@@ -85,7 +85,7 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
       </header>
 
       {/* הודעות דחופות מהצוות */}
-      {urgent.incoming.length > 0 && <UrgentPanel clientId={client.id} incoming={urgent.incoming} sent={[]} recipients={[]} />}
+      {urgent.threads.length > 0 && <UrgentPanel clientId={client.id} threads={urgent.threads} recipients={[]} />}
 
       {waiting.length > 0 && (
         <NeedsYou clientId={client.id} items={waiting} thumbs={signed} deadline={shortDate(dl.approve.date)} />

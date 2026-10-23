@@ -14,14 +14,14 @@ export function IdeasBoard(p: Props) {
   const [open, setOpen] = useState<Idea | "new" | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [draft, setDraft] = useState("");
-  const [adding, start] = useTransition();
+  const [preset, setPreset] = useState<{ title: string; url: string }>({ title: "", url: "" });
+  // פותח את הטופס המלא (פירוט, קישור…) – עם מה שכבר נכתב בשורה. קישור שהודבק עובר לשדה הקישור
   function add() {
     const raw = draft.trim();
-    if (!raw) return;
     const url = raw.match(/https?:\/\/\S+|(?:www\.)?(?:instagram|tiktok|pinterest|pin)\.[a-z.]+\/\S+/i)?.[0] ?? "";
-    const title = raw.replace(url, "").trim();
+    setPreset({ title: raw.replace(url, "").trim(), url });
     setDraft("");
-    start(async () => { await addIdea(p.clientId, p.month, { title: title || "רעיון", note: "", url: fixUrl(url), image_path: null }); });
+    setOpen("new");
   }
 
   return (
@@ -31,8 +31,8 @@ export function IdeasBoard(p: Props) {
         {/* הוספה כמו ב"דגשים לחודש": כותבים ולוחצים Enter. קישור לריל/פין נשמר, והתמונה נלקחת ממנו */}
         <form className="note reminders" onSubmit={(e) => { e.preventDefault(); add(); }}>
           <div className="rem new">
-            <span className="rem-dot" aria-hidden="true" />
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={adding ? "מוסיפים…" : "רעיון חדש…"} aria-label="רעיון חדש" enterKeyHint="done" disabled={adding} />
+            <button type="button" className="rem-plus" aria-label="רעיון חדש – כל הפרטים" onClick={add}>+</button>
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="רעיון חדש…" aria-label="רעיון חדש" enterKeyHint="next" />
           </div>
         </form>
         {p.ideas.length ? (
@@ -59,7 +59,7 @@ export function IdeasBoard(p: Props) {
       </section>
 
       {open && (
-        <IdeaSheet {...p} idea={open === "new" ? null : open} onClose={() => setOpen(null)}
+        <IdeaSheet {...p} idea={open === "new" ? null : open} preset={preset} onClose={() => setOpen(null)}
           onToGantt={(d) => {
             setOpen(null);
             const date = p.month.slice(0, 7) === p.today.slice(0, 7) ? p.today : p.month;
@@ -71,8 +71,8 @@ export function IdeasBoard(p: Props) {
   );
 }
 
-function IdeaSheet({ clientId, month, images, idea, onClose, onToGantt }: Props & {
-  idea: Idea | null; onClose: () => void; onToGantt: (d: Idea) => void;
+function IdeaSheet({ clientId, month, images, idea, preset, onClose, onToGantt }: Props & {
+  idea: Idea | null; preset: { title: string; url: string }; onClose: () => void; onToGantt: (d: Idea) => void;
 }) {
   const preview = idea?.image_path ? images[idea.image_path] : undefined;
   const [sure, setSure] = useState(false);
@@ -89,9 +89,9 @@ function IdeaSheet({ clientId, month, images, idea, onClose, onToGantt }: Props 
         });
       }}>
         {preview && <div className="drop pick" style={{ backgroundImage: `url(${preview})` }} />}
-        <input name="title" placeholder="הרעיון" defaultValue={idea?.title} aria-label="הרעיון" />
+        <input name="title" placeholder="הרעיון" defaultValue={idea?.title ?? preset.title} aria-label="הרעיון" autoFocus={!idea && !preset.title} />
         <textarea name="note" rows={4} placeholder="איך לצלם, מה לכתוב…" defaultValue={idea?.note} aria-label="פירוט" />
-        <input name="url" dir="ltr" placeholder="קישור לריל, לטיקטוק או לפין" defaultValue={idea?.url} aria-label="קישור" />
+        <input name="url" dir="ltr" placeholder="קישור לריל, לטיקטוק או לפין" defaultValue={idea?.url ?? preset.url} aria-label="קישור" />
         <span className="txt">התמונה הראשית נלקחת אוטומטית מהקישור.{idea?.author ? ` נכתב על ידי ${idea.author}.` : ""}</span>
         {idea?.url && <a className="txt strong" href={fixUrl(idea.url)} target="_blank" rel="noopener">פתיחת הקישור</a>}
         <div className="acts2">
