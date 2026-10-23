@@ -13,11 +13,28 @@ const fixUrl = (u: string) => (!u ? "" : /^https?:\/\//.test(u) ? u : `https://$
 export function IdeasBoard(p: Props) {
   const [open, setOpen] = useState<Idea | "new" | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [draft, setDraft] = useState("");
+  const [adding, start] = useTransition();
+  function add() {
+    const raw = draft.trim();
+    if (!raw) return;
+    const url = raw.match(/https?:\/\/\S+|(?:www\.)?(?:instagram|tiktok|pinterest|pin)\.[a-z.]+\/\S+/i)?.[0] ?? "";
+    const title = raw.replace(url, "").trim();
+    setDraft("");
+    start(async () => { await addIdea(p.clientId, p.month, { title: title || "רעיון", note: "", url: fixUrl(url), image_path: null }); });
+  }
 
   return (
     <>
       <section className="sec">
         <div className="label dotted">רעיונות</div>
+        {/* הוספה כמו ב"דגשים לחודש": כותבים ולוחצים Enter. קישור לריל/פין נשמר, והתמונה נלקחת ממנו */}
+        <form className="note reminders" onSubmit={(e) => { e.preventDefault(); add(); }}>
+          <div className="rem new">
+            <span className="rem-dot" aria-hidden="true" />
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={adding ? "מוסיפים…" : "רעיון חדש…"} aria-label="רעיון חדש" enterKeyHint="done" disabled={adding} />
+          </div>
+        </form>
         {p.ideas.length ? (
           <div className="ideas">
             {p.ideas.map((d) => {
@@ -38,9 +55,8 @@ export function IdeasBoard(p: Props) {
               );
             })}
           </div>
-        ) : <p className="empty">עוד אין רעיונות לחודש הזה</p>}
+        ) : null}
       </section>
-      <button className="fab" aria-label="רעיון חדש" onClick={() => setOpen("new")}>+</button>
 
       {open && (
         <IdeaSheet {...p} idea={open === "new" ? null : open} onClose={() => setOpen(null)}
