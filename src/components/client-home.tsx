@@ -1,19 +1,16 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { MONTHS, WEEKDAYS, deadlines, formatIL, israelToUTC, parseISODate, shortDate, toISODate, todayIL, weekday } from "@/lib/dates";
+import { WEEKDAYS, deadlines, formatIL, israelToUTC, parseISODate, shortDate, toISODate, todayIL, weekday } from "@/lib/dates";
 import { signPaths } from "@/lib/media-server";
 import { REQUEST_STATUS, type Client, type ClientEvent, type ContentItem, type Meeting, type Message, type OneOffStory, type RecurringStory } from "@/lib/types";
-import { Avatar } from "./avatar";
 import { Chevron } from "./chevron";
 import { NeedsYou, TodayCard } from "./client-home-parts";
-import { LogoEdit } from "./hero-brand-edit";
+import { ContentIcon, type IconKind } from "./content-icon";
 import { UrgentPanel } from "./urgent-panel";
 import { loadUrgent } from "@/lib/urgent";
 import { getContext } from "@/lib/context";
 import { ReportChip } from "./data-report";
 
-const TYPE_SHORT = { post: "Post", reel: "Reel", tiktok: "TikTok" } as const;
-const WD = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 
 // דף הבית של הלקוח: קודם מה שצריך ממנו, אחר כך מה עולה ומה קורה השבוע
 export async function ClientHome({ client, userName }: { client: Client; userName: string; userId?: string }) {
@@ -21,7 +18,7 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
   const dl = deadlines(today);
   const days = Array.from({ length: 5 }, (_, i) => { const d = parseISODate(today); d.setUTCDate(d.getUTCDate() + i); return toISODate(d); });
   const supabase = await createClient();
-  const [items, pending, recurring, oneOff, meetings, events, mine, summaries, marketing] = await Promise.all([
+  const [items, pending, recurring, oneOff, meetings, events, mine, summaries, marketing, checks] = await Promise.all([
     supabase.from("content_items").select("*").eq("client_id", client.id).gte("date", days[0]).lte("date", days[4]).order("date"),
     supabase.from("content_items").select("*").eq("client_id", client.id).eq("status", "client").order("date"),
     supabase.from("recurring_stories").select("*").eq("client_id", client.id),
@@ -31,26 +28,26 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
     supabase.from("messages").select("*").eq("client_id", client.id).order("updated_at", { ascending: false }).limit(5),
     supabase.from("meetings").select("starts_at, summary").eq("client_id", client.id).neq("summary", "").order("starts_at", { ascending: false }).limit(1),
     supabase.from("monthly_focus").select("id, text, done, url").eq("client_id", client.id).eq("month", today.slice(0, 7) + "-01").eq("kind", "marketing").order("position"),
+    supabase.from("story_checks").select("story_ref, date").eq("client_id", client.id).gte("date", days[0]).lte("date", days[4]),
   ]);
   const urgent = await loadUrgent(supabase, await getContext(), client);
   const marketingItems = (marketing.data ?? []) as { id: string; text: string; done: boolean; url: string }[];
   const weekItems = (items.data ?? []) as ContentItem[];
   const waiting = (pending.data ?? []) as ContentItem[];
   const todays = weekItems.filter((i) => i.date === today);
-  const brand = (client.brand ?? {}) as { logo_path?: string; cover_path?: string };
-  const signed = await signPaths([...[...weekItems, ...waiting].map((i) => i.thumb_path), brand.logo_path, brand.cover_path]);
-  const d0 = parseISODate(today);
+  const signed = await signPaths([...weekItems, ...waiting].map((i) => i.thumb_path));
 
-  // "השבוע": מה עולה בכל אחד מחמשת הימים הקרובים, כולל סטוריז
+  // "השבוע": רשימה של מה שקורה בחמשת הימים הקרובים; מה שכבר עלה – מסומן בקו (כמו בפתקים של אפל)
+  const checked = new Set(((checks.data ?? []) as { story_ref: string; date: string }[]).map((c) => `${c.story_ref}|${c.date}`));
   const week = days.map((d) => {
     const wd = weekday(d);
-    const labels = [
-      ...weekItems.filter((i) => i.date === d).map((i) => TYPE_SHORT[i.type]),
-      ...((recurring.data ?? []) as RecurringStory[]).filter((s) => s.weekdays.includes(wd)).map(() => "Story"),
-      ...((oneOff.data ?? []) as OneOffStory[]).filter((s) => s.date === d).map(() => "Story"),
+    const rows: { key: string; kind: IconKind; title: string; done: boolean }[] = [
+      ...weekItems.filter((i) => i.date === d).map((i) => ({ key: i.id, kind: i.type as IconKind, title: i.title, done: i.status === "live" })),
+      ...((recurring.data ?? []) as RecurringStory[]).filter((x) => x.weekdays.includes(wd)).map((x) => ({ key: `r${x.id}${d}`, kind: "story" as IconKind, title: x.title, done: checked.has(`r:${x.id}|${d}`) })),
+      ...((oneOff.data ?? []) as OneOffStory[]).filter((x) => x.date === d).map((x) => ({ key: `o${x.id}`, kind: "story" as IconKind, title: x.title, done: checked.has(`o:${x.id}|${d}`) })),
     ];
-    return { d, labels: [...new Set(labels)] };
-  });
+    return { d, rows };
+  }).filter((w) => w.rows.length);
 
   // "בקרוב": פגישות ואירועים באזור אחד
   const soon = [
@@ -72,16 +69,9 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
 
   return (
     <>
-      <header className="chead">
-        <div className="cover slim" style={brand.cover_path && signed[brand.cover_path] ? { backgroundImage: `url(${signed[brand.cover_path]})` } : undefined} />
-        <div className="chead-row">
-          <span className="logo-wrap">
-            <Avatar src={brand.logo_path ? signed[brand.logo_path] : null} name={client.name} size={44} color={client.color} />
-            <LogoEdit clientId={client.id} studioId={client.studio_id} />
-          </span>
-          <span className="chead-name"><b>{client.name}</b><small>הפורטל שלכם</small></span>
-        </div>
-        <div className="txt big">שלום{userName ? ` ${userName.split(" ")[0]}` : ""}, יום {WEEKDAYS[d0.getUTCDay()]} {d0.getUTCDate()} ב{MONTHS[d0.getUTCMonth()]}</div>
+      <header className="phead">
+        <span className="txt big">שלום{userName ? ` ${userName.split(" ")[0]}` : ""}</span>
+        <h1 className="display-title">{client.name}</h1>
       </header>
 
       {/* הודעות דחופות מהצוות */}
@@ -118,14 +108,21 @@ export async function ClientHome({ client, userName }: { client: Client; userNam
 
       <section className="sec">
         <div className="label dotted">השבוע</div>
-        <div className="wk">
-          {week.map((w, i) => (
-            <div key={w.d} className={`wkday${i === 0 ? " now" : ""}`}>
-              <span className="wkd">{i === 0 ? "היום" : WD[weekday(w.d)]}</span>
-              {w.labels.length ? w.labels.map((l) => <span key={l} className={`wkl ${l.toLowerCase()}`}>{l}</span>) : <span className="wkl none">—</span>}
-            </div>
-          ))}
-        </div>
+        {week.length ? (
+          <div className="note reminders week-list">
+            {week.map((w) => (
+              <div key={w.d} className="wl-day">
+                <span className="wl-head">{w.d === today ? "היום" : w.d === days[1] ? "מחר" : `יום ${WEEKDAYS[weekday(w.d)]}`}</span>
+                {w.rows.map((r) => (
+                  <div key={r.key} className={`rem${r.done ? " done" : ""}`}>
+                    <span className="rem-ic"><ContentIcon kind={r.kind} size={16} /></span>
+                    <span className="rem-text">{r.title}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : <p className="txt">אין תוכן מתוכנן לימים הקרובים</p>}
         <Link className="edit more" href={`/c/${client.id}/gantt`}>לצפייה בגאנט המלא <Chevron dir="forward" size={13} /></Link>
       </section>
 
