@@ -4,7 +4,7 @@
    עם הנגיעה של אפליקציות Meta: שחור-לבן חד, צבע מבטא אחד (כחול) ומספרים בולטים. */
 :root {
   /* משטחים – systemGroupedBackground / secondarySystemGroupedBackground */
-  --page: #f5f5f7;                         /* הרקע של apple.com */
+  --page: #ffffff;                         /* רקע לבן */
   --surface: #ffffff;
   --soft: rgba(118, 118, 128, 0.12);      /* tertiarySystemFill – שדות, צ'יפים */
   --ink: #1d1d1f;                          /* הטקסט של apple.com */
@@ -15,9 +15,9 @@
   --accent-soft: rgba(0, 113, 227, 0.1);
   --on-accent: #ffffff;
   --dot: #0071e3;
-  --glass: rgba(250, 250, 252, 0.78);
+  --glass: rgba(255, 255, 255, 0.82);
   --glass-edge: rgba(255, 255, 255, 0.6);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 24px rgba(0, 0, 0, 0.04);
+  --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.09), 0 2px 12px rgba(0, 0, 0, 0.04); /* על רקע לבן: קו מתאר עדין + צל רך */
   --shadow-float: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 12px 40px rgba(0, 0, 0, 0.1);
   /* גוונים עדינים במקום פסטלים – לסטטוסים ולסוגי תוכן */
   --peach: #fff1e0;
