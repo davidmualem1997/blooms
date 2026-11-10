@@ -17,7 +17,7 @@ export function GoogleButton() {
     if (isNativeApp()) {
       const { data, error } = await createClient().auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: NATIVE_AUTH_REDIRECT, skipBrowserRedirect: true },
+        options: { redirectTo: NATIVE_AUTH_REDIRECT, skipBrowserRedirect: true, queryParams: { prompt: "select_account" } },
       });
       if (!error && data.url) { await Browser.open({ url: data.url, presentationStyle: "popover" }); setBusy(false); return; }
       setError("לא הצלחנו להתחבר ל-Google. נסו שוב.");
@@ -26,7 +26,8 @@ export function GoogleButton() {
     }
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      // תמיד להציג בחירת חשבון – גם כשיש חשבון Google אחד מחובר בדפדפן
+      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: "select_account" } },
     });
     if (error) {
       setError("לא הצלחנו להתחבר ל-Google. נסו שוב.");
