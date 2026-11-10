@@ -2,7 +2,7 @@
 
 import { Chevron } from "@/components/chevron";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ItemEditor, type EditorTarget } from "@/components/item-editor";
 import { MonthList, type FocusItem } from "@/components/month-list";
 import { Sheet } from "@/components/sheet";
@@ -25,6 +25,15 @@ type Props = {
 const cut = (t: string) => (t.length > 60 ? t.slice(0, 59) + "…" : t);
 const WD_SHORT = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 
+// סינון תצוגה בלוח בלבד – לא משנה כלום בשאר המסכים. נשמר במכשיר
+type Layer = "ig" | "tt" | "story" | "event";
+const LAYERS: { k: Layer; l: string; icon: "post" | "tiktok" | "story" | "event"; sw?: string }[] = [
+  { k: "ig", l: "אינסטגרם", icon: "post", sw: "ig" }, { k: "tt", l: "טיקטוק", icon: "tiktok", sw: "tt" },
+  { k: "story", l: "סטוריז", icon: "story" }, { k: "event", l: "אירועים ומועדים", icon: "event", sw: "ev" },
+];
+const ALL: Layer[] = LAYERS.map((x) => x.k);
+const LS_KEY = "blooms.gantt.layers";
+
 export function GanttBoard(p: Props) {
   const [day, setDay] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(() => {
@@ -32,6 +41,19 @@ export function GanttBoard(p: Props) {
     return it ? { item: it, date: it.date } : null;
   });
   const [, start] = useTransition();
+  const [show, setShow] = useState<Set<Layer>>(() => new Set(ALL));
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) ?? "null") as Layer[] | null;
+      if (Array.isArray(saved)) setShow(new Set(saved.filter((x) => ALL.includes(x)))); // eslint-disable-line react-hooks/set-state-in-effect -- העדפה שמורה במכשיר
+    } catch {}
+  }, []);
+  const setLayers = (next: Set<Layer>) => {
+    setShow(next);
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...next])); } catch {}
+  };
+  const toggle = (k: Layer) => { const n = new Set(show); if (n.has(k)) n.delete(k); else n.add(k); setLayers(n); };
+  const allOn = show.size === ALL.length;
 
   const first = parseISODate(p.month);
   const daysInMonth = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
@@ -55,23 +77,32 @@ export function GanttBoard(p: Props) {
           <h2>{p.title}</h2>
           <div className="calnavs">{p.nav}</div>
         </div>
+        <div className="layers" role="group" aria-label="מה להציג בלוח">
+          <button type="button" className="layer all" aria-pressed={allOn} onClick={() => setLayers(new Set(ALL))}>הכול</button>
+          {LAYERS.map((x) => (
+            <button key={x.k} type="button" className="layer" aria-pressed={show.has(x.k)} onClick={() => toggle(x.k)}>
+              {x.sw && <span className={`hsw ${x.sw}`} />}<ContentIcon kind={x.icon} size={12} />{x.l}
+            </button>
+          ))}
+        </div>
         <div className="calgrid">
           {WEEKDAYS.map((w) => <div key={w} className="calwd">{w}</div>)}
           {Array.from({ length: first.getUTCDay() }, (_, i) => <div key={`b${i}`} className="calday blank" />)}
           {dates.map((d) => {
-            const its = p.items.filter((i) => i.date === d);
-            const ss = storiesOn(d);
+            const its = p.items.filter((i) => i.date === d && show.has(i.type === "tiktok" ? "tt" : "ig"));
+            const ss = show.has("story") ? storiesOn(d) : [];
+            const ev = show.has("event");
             const wd = parseISODate(d).getUTCDay();
             // רק מועדי ישראל (חגים וימי זיכרון) צובעים את כל היום באפור; ימים בינלאומיים/של התחום – רק תגית
-            const special = p.special.some((e) => e.date === d && (e.kind === "holiday" || e.kind === "memorial"));
+            const special = ev && p.special.some((e) => e.date === d && (e.kind === "holiday" || e.kind === "memorial"));
             return (
               <div key={d} role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDay(d)} className={`calday${d === p.today ? " today" : ""}${d < p.today ? " past" : ""}${wd === 6 ? " sat" : ""}${special ? " hol" : ""}`} onClick={() => setDay(d)}
                 aria-label={`${Number(d.slice(8))} ב${MONTHS[first.getUTCMonth()]}`}>
                 <span className="cnum num">{Number(d.slice(8))}</span>
-                {p.special.filter((e) => e.date === d).map((e) => (
+                {ev && p.special.filter((e) => e.date === d).map((e) => (
                   <span key={e.title} className="ctg gray"><ContentIcon kind={e.kind === "memorial" ? "memorial" : "holiday"} size={10} /><span>{cut(e.title)}</span></span>
                 ))}
-                {p.custom.filter((e) => e.date === d).map((e) => (
+                {ev && p.custom.filter((e) => e.date === d).map((e) => (
                   <span key={e.id} className="ctg gray"><ContentIcon kind="event" size={10} /><span>{cut(e.title)}</span></span>
                 ))}
                 {its.map((i) => (
@@ -85,12 +116,6 @@ export function GanttBoard(p: Props) {
             );
           })}
         </div>
-      </div>
-      <div className="legend">
-        <span><span className="hsw ig" /><ContentIcon kind="post" size={12} /> אינסטגרם</span>
-        <span><span className="hsw tt" /><ContentIcon kind="tiktok" size={12} /> טיקטוק</span>
-        <span><ContentIcon kind="story" size={12} /> סטוריז</span>
-        <span><span className="hsw ev" /><ContentIcon kind="event" size={12} /> אירועים ומועדים</span>
       </div>
 
 
