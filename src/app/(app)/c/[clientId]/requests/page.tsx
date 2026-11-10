@@ -33,7 +33,7 @@ export default async function RequestsPage({ params, searchParams }: PageProps<"
       </nav>
       <div className="stack">
         {list.map((m) => (
-          <RequestCard key={m.id} clientId={clientId} m={m} thumbs={thumbs} isStaff={isStaff} names={names}
+          <RequestCard key={m.id} clientId={clientId} m={m} thumbs={thumbs} isStaff={isStaff} names={names} me={ctx.userId}
             author={isStaff ? m.author?.full_name : undefined} />
         ))}
         {!list.length && <p className="empty">אין פניות {f.k === "open" ? "פתוחות" : f.k === "done" ? "שטופלו" : "שהועברו לפגישה"}</p>}

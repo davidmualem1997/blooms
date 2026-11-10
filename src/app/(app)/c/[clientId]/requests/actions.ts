@@ -62,3 +62,24 @@ export async function updateRequest(clientId: string, id: string, patch: { statu
   }
   done(clientId);
 }
+
+// הלקוח: תגובה לפנייה שלו או עריכה שלה, כל עוד היא לא נסגרה. מנהל/ת הלקוח מקבל/ת עדכון על תגובה
+export async function clientRequestReply(clientId: string, id: string, text: string): Promise<{ error?: string }> {
+  if (!text.trim()) return {};
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.rpc("client_request_reply", { mid: id, txt: text.trim() });
+  if (error) return { error: "התגובה לא נשלחה. ייתכן שהפנייה כבר נסגרה." };
+  notifyLater({ clientId, who: "manager" }, { body: `תגובה חדשה בפנייה: ${excerpt(text)}`, url: `/c/${clientId}/requests`, tag: `req-${clientId}` }, auth.user?.id);
+  done(clientId);
+  return {};
+}
+
+export async function clientRequestEdit(clientId: string, id: string, body: string): Promise<{ error?: string }> {
+  if (!body.trim()) return { error: "הפנייה לא יכולה להיות ריקה" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("client_request_edit", { mid: id, new_body: body.trim() });
+  if (error) return { error: "השינוי לא נשמר. ייתכן שהפנייה כבר נסגרה." };
+  done(clientId);
+  return {};
+}
