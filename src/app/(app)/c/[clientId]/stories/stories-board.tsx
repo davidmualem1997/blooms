@@ -112,7 +112,7 @@ export function StoriesBoard({ clientId, studioId, days, thumbs, today, canEdit 
   );
 }
 
-function StorySheet({ clientId, studioId, date, story, onClose }: { clientId: string; studioId: string; date: string; story?: Story; onClose: () => void }) {
+export function StorySheet({ clientId, studioId, date, story, onClose }: { clientId: string; studioId: string; date: string; story?: Story; onClose: () => void }) {
   const [media, setMedia] = useState<Media[]>(story?.media ?? []);
   const [busy, setBusy] = useState(false);
   const [pending, start] = useTransition();

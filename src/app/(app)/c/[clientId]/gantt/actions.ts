@@ -61,9 +61,9 @@ export async function saveItem(input: ItemInput): Promise<{ error?: string }> {
 }
 
 // קישור זמני לקובץ המקורי, להורדה ולהעלאה ידנית לרשתות
-export async function mediaUrl(path: string): Promise<string | null> {
+export async function mediaUrl(path: string, download = true): Promise<string | null> {
   const supabase = await createClient();
-  const { data } = await supabase.storage.from("media").createSignedUrl(path, 600, { download: true });
+  const { data } = await supabase.storage.from("media").createSignedUrl(path, 600, download ? { download: true } : undefined);
   return data?.signedUrl ?? null;
 }
 
