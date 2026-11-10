@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
     for (const m of messages) {
       if (m.groupId) continue; // קבוצות – בהמשך
       try {
-        await sendText(m.from, `קיבלתי ✓ ${m.text ? `"${m.text.slice(0, 200)}"` : `(${m.type})`}\nהבוט של BLOOMS בבנייה – בקרוב אדע גם לענות.`);
+        await sendText(m.from, `קיבלתי ✓ ${m.text ? `"${m.text.slice(0, 200)}"` : `(${m.type})`}\nהבוט של BLOOMS בבנייה – בקרוב אדע גם לענות.`, m.phoneId);
       } catch (e) {
         // זמני: פורמט המספר בלבד (ספרות ראשונות ואחרונות), לבירור רשימת הנמענים של מספר הבדיקה
-        console.error("whatsapp reply", m.from.length, `${m.from.slice(0, 5)}…${m.from.slice(-2)}`, e);
+        console.error("whatsapp reply", m.phoneId === process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() ? "same-phone-id" : "env-phone-id-differs", m.from.length, `${m.from.slice(0, 5)}…${m.from.slice(-2)}`, e);
       }
     }
   });
