@@ -156,7 +156,7 @@ export function SendToTeam({ clientId, studioId, history }: { clientId: string; 
             <form className="stack" action={submit}>
               <h2>מה תרצו לשלוח?</h2>
               <div className="seg">{KINDS.map((x) => <button key={x.k} type="button" aria-pressed={kind === x.k} onClick={() => setKind(x.k)}>{x.l}</button>)}</div>
-              <textarea name="t" rows={5} placeholder={KINDS.find((x) => x.k === kind)!.ph} aria-label="הפנייה" required autoFocus />
+              <textarea name="t" rows={5} placeholder={KINDS.find((x) => x.k === kind)!.ph} aria-label="הפנייה" required />
               <div className="media-strip">
                 {files.map((f) => (
                   <div key={f.path} className="mtile"><span className="mph">{f.kind === "video" ? "סרטון" : "קובץ"} ✓</span>

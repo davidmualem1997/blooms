@@ -35,7 +35,7 @@ export default async function AllRequestsPage({ searchParams }: PageProps<"/requ
         {list.map((m) => (
           <div key={m.id} className="stack tight">
             <Link className="label dotted" href={`/c/${m.client_id}`}>{clientName[m.client_id]}</Link>
-            <RequestCard clientId={m.client_id} m={m} thumbs={thumbs} isStaff={ctx.role !== "client"} names={names} author={m.author?.full_name} />
+            <RequestCard clientId={m.client_id} m={m} thumbs={thumbs} isStaff={ctx.role !== "client"} names={names} me={ctx.userId} author={m.author?.full_name} />
           </div>
         ))}
         {!list.length && <p className="txt">אין פניות כאן</p>}
