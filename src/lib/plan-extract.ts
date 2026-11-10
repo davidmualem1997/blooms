@@ -1,7 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 
-// קריאת PDF של תכנון תוכן (טבלת דגשים, פוסטים ותכנון קדימה) → הצעה לגאנט.
+// קריאת PDF או תמונות (צילום מסך / צילום של טבלה) של תכנון תוכן (טבלת דגשים, פוסטים ותכנון קדימה) → הצעה לגאנט.
 // מחזיר הצעה בלבד – שום דבר לא נכנס לגאנט בלי שהמשתמש מאשר.
 
 export type PlanPost = { date: string; time: string; type: "post" | "reel" | "tiktok"; title: string; caption: string; notes: string };
@@ -23,7 +23,7 @@ const SCHEMA = obj({
   events: list({ date: str, title: str }),
 });
 
-const prompt = (today: string) => `זה מסמך תכנון תוכן של לקוח של סטודיו לניהול סושיאל מדיה – בדרך כלל טבלה של דגשים לחודש, פוסטים ותכנון קדימה.
+const prompt = (today: string) => `זה מסמך תכנון תוכן (PDF, או תמונה אחת או יותר של אותה טבלה) של לקוח של סטודיו לניהול סושיאל מדיה – בדרך כלל טבלה של דגשים לחודש, פוסטים ותכנון קדימה.
 חלץ ממנו את התכנון לגאנט, בעברית, בדיוק כפי שכתוב. אל תמציא פריטים ואל תשלים תאריכים שלא מופיעים.
 התאריך היום: ${today}. תאריך בלי שנה – השנה שבה התאריך הקרוב ביותר מהיום והלאה (תכנון הוא קדימה). אם במסמך כתוב חודש/שנה בכותרת – השתמש בהם.
 
@@ -38,19 +38,29 @@ events – אירוע, חג, השקה או מועד חשוב של העסק עם 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const valid = (d: string) => DATE.test(d) && !Number.isNaN(Date.parse(d + "T00:00:00Z")) && new Date(d + "T00:00:00Z").toISOString().slice(0, 10) === d;
 
-export async function extractPlanFromPdf(pdf: Buffer, filename: string, today: string): Promise<Plan> {
+export type PlanFile = { data: Buffer; mime: string };
+
+export async function extractPlan(files: PlanFile[], today: string): Promise<Plan> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) throw new Error("OPENAI_API_KEY is not set");
   const client = new OpenAI({ apiKey: key });
+  const pdfs = files.filter((f) => f.mime === "application/pdf");
+  const images = files.filter((f) => f.mime !== "application/pdf");
+  const parts: OpenAI.Responses.ResponseInputContent[] = pdfs.map((f) => ({ type: "input_file", filename: "plan.pdf", file_data: `data:application/pdf;base64,${f.data.toString("base64")}` }));
+  // תמונות: קודם מעתיקים את הטבלה לטקסט (מודל חזק בקריאת עברית מתמונה), ואז מחלצים ממנו כמו מ-PDF
+  if (images.length) {
+    const read = await client.responses.create({
+      model: process.env.OPENAI_VISION_MODEL?.trim() || "gpt-5.4",
+      input: [{ role: "user", content: [
+        ...images.map((f) => ({ type: "input_image" as const, detail: "high" as const, image_url: `data:${f.mime};base64,${f.data.toString("base64")}` })),
+        { type: "input_text", text: "העתק את כל הטקסט שבתמונות בדיוק כפי שהוא, בעברית, בלי לפרש ובלי לסכם. כותרות ושורות טקסט – כשורות. טבלה – כטבלת Markdown עם כל העמודות, שורה לכל שורה בטבלה, תא ריק נשאר ריק. כמה תמונות – לפי הסדר." },
+      ] }],
+    });
+    parts.push({ type: "input_text", text: `הטקסט מתוך התמונות:\n\n${read.output_text}` });
+  }
   const response = await client.responses.create({
     model: process.env.OPENAI_EXTRACT_MODEL?.trim() || "gpt-5.4-mini",
-    input: [{
-      role: "user",
-      content: [
-        { type: "input_file", filename, file_data: `data:application/pdf;base64,${pdf.toString("base64")}` },
-        { type: "input_text", text: prompt(today) },
-      ],
-    }],
+    input: [{ role: "user", content: [...parts, { type: "input_text", text: prompt(today) }] }],
     text: { format: { type: "json_schema", name: "content_plan", strict: true, schema: SCHEMA } },
   });
   const raw = JSON.parse(response.output_text) as Plan;

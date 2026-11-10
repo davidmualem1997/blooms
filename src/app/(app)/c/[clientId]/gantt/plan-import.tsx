@@ -7,13 +7,13 @@ import { MONTHS, parseISODate, shortDate } from "@/lib/dates";
 import { uploadMedia } from "@/lib/media-client";
 import type { Plan } from "@/lib/plan-extract";
 import { TYPE_LABEL } from "@/lib/types";
-import { importPlan, readPlanPdf } from "./plan-actions";
+import { importPlan, readPlanFiles } from "./plan-actions";
 
 const WD = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 const dayLabel = (d: string) => `${WD[parseISODate(d).getUTCDay()]} ${shortDate(d)}`;
 const monthLabel = (m: string) => `${MONTHS[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 
-// "ייבוא תכנון מ-PDF": טבלת דגשים, פוסטים ותכנון קדימה → ישר לגאנט, אחרי אישור
+// "ייבוא תכנון": PDF או תמונות של טבלת דגשים, פוסטים ותכנון קדימה → ישר לגאנט, אחרי אישור
 export function PlanImport({ clientId, studioId }: { clientId: string; studioId: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<"idle" | "upload" | "read">("idle");
@@ -21,19 +21,28 @@ export function PlanImport({ clientId, studioId }: { clientId: string; studioId:
   const [found, setFound] = useState<{ plan: Plan; dups: string[] } | null>(null);
   const [msg, setMsg] = useState("");
 
-  async function onFile(f?: File) {
-    if (!f) return;
+  async function onFiles(list: File[]) {
+    if (!list.length) return;
     setMsg("");
-    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) return setMsg("צריך קובץ PDF");
+    const pdfs = list.filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+    const imgs = list.filter((f) => /^image\/(jpeg|png|webp|gif)$/.test(f.type));
+    if (pdfs.length + imgs.length !== list.length) return setMsg("אפשר PDF או תמונות (JPG, PNG)");
+    if (pdfs.length > 1 || (pdfs.length && imgs.length)) return setMsg("PDF אחד, או כמה תמונות – לא ביחד");
+    if (imgs.length > 8) return setMsg("עד 8 תמונות בפעם אחת");
     try {
       setStage("upload");
-      const { path } = await uploadMedia(new File([f], "original.pdf", { type: "application/pdf" }), studioId, clientId, setProgress);
+      const paths: string[] = [];
+      for (const [i, f] of list.entries()) {
+        const named = pdfs.length ? new File([f], "original.pdf", { type: "application/pdf" }) : f;
+        const { path } = await uploadMedia(named, studioId, clientId, (x) => setProgress((i + x) / list.length));
+        paths.push(path);
+      }
       setStage("read");
-      const res = await readPlanPdf(clientId, path);
+      const res = await readPlanFiles(clientId, paths);
       setStage("idle");
       if (res.error || !res.plan) return setMsg(res.error ?? "משהו השתבש");
       const p = res.plan;
-      if (!p.posts.length && !p.stories.length && !p.events.length && !p.highlights.length) return setMsg("לא מצאנו בקובץ תכנון עם תאריכים");
+      if (!p.posts.length && !p.stories.length && !p.events.length && !p.highlights.length) return setMsg("לא מצאנו תכנון עם תאריכים");
       setFound({ plan: p, dups: res.dups ?? [] });
     } catch {
       setStage("idle");
@@ -49,12 +58,12 @@ export function PlanImport({ clientId, studioId }: { clientId: string; studioId:
           <path d="M6 3.5h8l4.5 4.5v12.5H6z" /><path d="M14 3.5V8h4.5" /><path d="M9 12.5h6M9 15.5h6M9 18.5h4" />
         </svg>
         <span className="pdf-body">
-          <b className="w500">{stage === "upload" ? `מעלים… ${Math.round(progress * 100)}%` : stage === "read" ? "קוראים את התכנון…" : "ייבוא תכנון מ-PDF"}</b>
-          <span className="txt">{stage === "read" ? "זה לוקח בערך חצי דקה" : "טבלת דגשים ופוסטים – נכנסת ישר לגאנט"}</span>
+          <b className="w500">{stage === "upload" ? `מעלים… ${Math.round(progress * 100)}%` : stage === "read" ? "קוראים את התכנון…" : "ייבוא תכנון מ-PDF או מתמונה"}</b>
+          <span className="txt">{stage === "read" ? "זה לוקח בערך חצי דקה" : "טבלת דגשים ופוסטים, או צילום מסך שלה – נכנסת ישר לגאנט"}</span>
         </span>
         {busy && <span className="spinner" aria-hidden="true" />}
       </button>
-      <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={input} type="file" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => { onFiles([...(e.target.files ?? [])]); e.target.value = ""; }} />
       {msg && <p className="txt">{msg}</p>}
       {found && <PlanReview clientId={clientId} {...found} onClose={(n) => { setFound(null); if (n) setMsg(`נכנסו לגאנט ${n} פריטים ✓`); }} />}
     </>
