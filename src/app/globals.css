@@ -1394,3 +1394,11 @@ button.urgent-card.new { box-shadow: 0 0 0 1.5px var(--no); }
 .wl-day .rem + .rem { border-top: 0; }
 .wl-day .rem { min-height: 38px; padding-block: 4px; }
 .rem-ic { flex: none; width: 22px; display: grid; place-items: center; color: var(--sub); }
+
+/* מילוי מהאתר: שדה כתובת בתוך הכרטיס, ותצוגת הלוגו שנמצא */
+.site-imp { margin-top: 10px; }
+.site-imp:active { transform: none; }
+.site-row { display: flex; gap: 8px; margin-top: 6px; min-width: 0; }
+.site-row input { flex: 1; min-width: 0; font-size: 16px; padding: 8px 12px; border-radius: 10px; border: 0; background: var(--soft); color: var(--ink); text-align: left; }
+.pbtn.small { padding: 8px 14px; font-size: 14px; flex: none; }
+.imp-logo { display: block; max-width: 140px; max-height: 80px; object-fit: contain; margin-top: 6px; border-radius: 8px; background: var(--soft); padding: 6px; }
