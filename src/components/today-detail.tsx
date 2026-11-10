@@ -16,7 +16,7 @@ const KIND = { meet: "פגישה", call: "שיחת טלפון", zoom: "זום" }
 const GROUPS: { k: ContentType; l: string }[] = [{ k: "post", l: "פוסטים" }, { k: "reel", l: "רילסים" }, { k: "tiktok", l: "טיקטוק" }];
 
 // תמונות וסרטונים במלואם, בגלילה הצידה כשיש כמה
-function MediaStrip({ media, urls, tall }: { media: Media[]; urls: Record<string, string>; tall: boolean }) {
+export function MediaStrip({ media, urls, tall }: { media: Media[]; urls: Record<string, string>; tall: boolean }) {
   if (!media.length) return <div className={`td-full empty-media${tall ? " tall" : ""}`}><span className="txt">עוד אין קובץ</span></div>;
   return (
     <div className="td-strip">

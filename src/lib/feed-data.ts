@@ -17,7 +17,9 @@ export async function loadFeed(clientId: string, tiktok: boolean) {
   const items = (data ?? []) as ContentItem[];
   // סרטון בלי תמונה ממוזערת (הועלה לפני שנוצרו כאלה) – מציגים פריים מהסרטון עצמו
   const videoPaths = items.filter((i) => !i.thumb_path).map((i) => i.media.find((m) => m.kind === "video")?.path).filter(Boolean) as string[];
-  const thumbs = await signPaths([...items.map((i) => i.thumb_path), ...videoPaths]);
+  // הלקוח רואה את הפוסט המלא בלחיצה, אז חותמים לו גם את כל הקבצים
+  const full = ctx.role === "client" ? items.flatMap((i) => i.media.flatMap((m) => [m.path, m.thumb])) : [];
+  const thumbs = await signPaths([...items.map((i) => i.thumb_path), ...videoPaths, ...full]);
   const today = todayIL();
   const dates = items.map((i) => i.date).sort();
   return { ctx, client, items, thumbs, today, lastDate: dates[dates.length - 1] ?? null, canEdit: ctx.role !== "client" };
