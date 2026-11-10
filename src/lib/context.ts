@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { avatarSrc, type Client, type Profile, type Role } from "@/lib/types";
@@ -18,7 +19,13 @@ export const getContext = cache(async (): Promise<AppContext> => {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
-  const userId = auth.user.id;
+  const ctx = await loadContext(supabase, auth.user.id, auth.user.email ?? null);
+  if (!ctx) redirect("/onboarding");
+  return ctx;
+});
+
+// אותו הקשר מכל חיבור של משתמש (גם מחוץ לבקשת דפדפן – למשל בוט הוואטסאפ). null = אין סטודיו ואין לקוחות
+export async function loadContext(supabase: SupabaseClient, userId: string, email: string | null): Promise<AppContext | null> {
 
   const [{ data: profile }, { data: memberships }, { data: clients }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, email, avatar_url, avatar_path").eq("id", userId).single(),
@@ -43,7 +50,7 @@ export const getContext = cache(async (): Promise<AppContext> => {
     role = "client";
     studioId = clients[0].studio_id;
   } else {
-    redirect("/onboarding");
+    return null;
   }
 
   let team: AppContext["team"] = [];
@@ -60,14 +67,14 @@ export const getContext = cache(async (): Promise<AppContext> => {
 
   return {
     userId,
-    profile: (profile as Profile) ?? { id: userId, full_name: "", email: auth.user.email ?? null, avatar_url: null },
+    profile: (profile as Profile) ?? { id: userId, full_name: "", email, avatar_url: null },
     role,
     studioId,
     studioName,
     clients: (clients ?? []) as Client[],
     team,
   };
-});
+}
 
 // מנהלת הסטודיו רואה דאשבורד כללי תמיד; מנהל לקוחות רק כשיש לו 2 לקוחות ומעלה
 export function hasGeneralDashboard(ctx: AppContext): boolean {
