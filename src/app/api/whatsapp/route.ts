@@ -19,7 +19,11 @@ export async function POST(request: NextRequest) {
   if (!validSignature(raw, request.headers.get("x-hub-signature-256"))) {
     return new NextResponse("bad signature", { status: 401 });
   }
-  const messages = parseIncoming(JSON.parse(raw));
+  const body = JSON.parse(raw);
+  const messages = parseIncoming(body);
+  // זמני, לבדיקת החיבור: רק מבנה ההודעה (שמות שדות), בלי התוכן
+  const v = body?.entry?.[0]?.changes?.[0]?.value;
+  if (v?.messages) console.log("whatsapp shape", JSON.stringify({ value: Object.keys(v), message: Object.keys(v.messages[0] ?? {}), contact: Object.keys(v.contacts?.[0] ?? {}) }));
   // עונים למטא מיד, והטיפול ממשיך ברקע (אחרת מטא שולחת שוב)
   after(async () => {
     for (const m of messages) {
