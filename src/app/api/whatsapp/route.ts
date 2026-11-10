@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const raw = await request.text();
   if (!validSignature(raw, request.headers.get("x-hub-signature-256"))) {
+    console.error("whatsapp bad signature", raw.length, Boolean(request.headers.get("x-hub-signature-256")));
     return new NextResponse("bad signature", { status: 401 });
   }
   const body = JSON.parse(raw);
