@@ -3,23 +3,30 @@
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
 import { todayIL } from "@/lib/dates";
-import { extractPlanFromPdf, type Plan } from "@/lib/plan-extract";
+import { extractPlan, type Plan, type PlanFile } from "@/lib/plan-extract";
 import { createClient } from "@/lib/supabase/server";
 
 export type PlanRow = { key: string; dup: boolean };
 const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
 
-// PDF של תכנון → הצעה לגאנט, עם סימון של מה שכבר קיים. הקובץ נמחק אחרי הקריאה
-export async function readPlanPdf(clientId: string, path: string): Promise<{ plan?: Plan; dups?: string[]; error?: string }> {
+const MIME: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" };
+
+// PDF או תמונות של תכנון → הצעה לגאנט, עם סימון של מה שכבר קיים. הקבצים נמחקים אחרי הקריאה
+export async function readPlanFiles(clientId: string, paths: string[]): Promise<{ plan?: Plan; dups?: string[]; error?: string }> {
   const ctx = await getContext();
   if (ctx.role === "client" || !ctx.clients.some((c) => c.id === clientId)) return { error: "אין הרשאה" };
   const supabase = await createClient();
-  if (path.split("/")[1] !== clientId || !path.toLowerCase().endsWith(".pdf")) return { error: "קובץ לא תקין" };
-  const { data: file, error } = await supabase.storage.from("media").download(path);
-  if (error || !file) return { error: "לא הצלחנו לקרוא את הקובץ" };
+  const ext = (p: string) => p.split(".").pop()?.toLowerCase() ?? "";
+  if (!paths.length || paths.length > 8 || paths.some((p) => p.split("/")[1] !== clientId || !MIME[ext(p)])) return { error: "קובץ לא תקין" };
   try {
-    if (file.size > 25 * 1024 * 1024) return { error: "הקובץ גדול מדי (עד 25MB)" };
-    const plan = await extractPlanFromPdf(Buffer.from(await file.arrayBuffer()), "plan.pdf", todayIL());
+    const files: PlanFile[] = [];
+    for (const p of paths) {
+      const { data: file, error } = await supabase.storage.from("media").download(p);
+      if (error || !file) return { error: "לא הצלחנו לקרוא את הקובץ" };
+      files.push({ data: Buffer.from(await file.arrayBuffer()), mime: MIME[ext(p)] });
+    }
+    if (files.reduce((n, f) => n + f.data.byteLength, 0) > 25 * 1024 * 1024) return { error: "הקבצים גדולים מדי (עד 25MB ביחד)" };
+    const plan = await extractPlan(files, todayIL());
     const dates = [...plan.posts, ...plan.stories, ...plan.events].map((x) => x.date).concat(plan.highlights.map((h) => `${h.month}-01`)).sort();
     const dups: string[] = [];
     if (dates.length) {
@@ -41,7 +48,7 @@ export async function readPlanPdf(clientId: string, path: string): Promise<{ pla
     console.error("plan extract", (e as Error).message);
     return { error: "לא הצלחנו לקרוא את התכנון מהקובץ. נסו שוב או קובץ אחר." };
   } finally {
-    await supabase.storage.from("media").remove([path, path.replace(/original\.pdf$/i, "thumb.jpg")]);
+    await supabase.storage.from("media").remove(paths.flatMap((p) => [p, p.replace(/original\.[a-z]+$/i, "thumb.jpg")]));
   }
 }
 
