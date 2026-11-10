@@ -1,6 +1,6 @@
 "use client";
 
-import { PdfImport } from "./pdf-import";
+import { PdfImport, SiteImport } from "./pdf-import";
 import { useState, useTransition } from "react";
 import { Sheet } from "@/components/sheet";
 import { MONTHS, WEEKDAYS, formatIL, parseISODate } from "@/lib/dates";
@@ -140,6 +140,7 @@ export function ClientFile(p: Props) {
 
       {shown === "general" && (<>
       {p.isStaff && <PdfImport clientId={p.clientId} studioId={p.studioId} brand={b} />}
+      {p.isStaff && <SiteImport clientId={p.clientId} brand={b} />}
       {/* קישורים מהירים: רשתות, תמונות וחומרים */}
       <div className="quick">
         {socials.map((q) => {
