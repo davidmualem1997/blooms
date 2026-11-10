@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // WhatsApp Cloud API: שליחת הודעות ואימות שההודעות שמגיעות באמת ממטא
 const VERSION = () => process.env.META_GRAPH_VERSION?.trim() || "v24.0";
 
-export type WaIncoming = { from: string; name: string; id: string; type: string; text: string; groupId?: string };
+export type WaIncoming = { from: string; name: string; id: string; type: string; text: string; groupId?: string; phoneId?: string };
 
 // החתימה של מטא: HMAC-SHA256 של גוף הבקשה עם ה-App Secret
 export function validSignature(raw: string, header: string | null) {
@@ -20,6 +20,7 @@ export function parseIncoming(body: unknown): WaIncoming[] {
   const entries = (body as { entry?: { changes?: { value?: Record<string, unknown> }[] }[] })?.entry ?? [];
   for (const e of entries) for (const c of e.changes ?? []) {
     const v = c.value ?? {};
+    const phoneId = (v.metadata as { phone_number_id?: string } | undefined)?.phone_number_id;
     const contacts = (v.contacts ?? []) as { wa_id: string; profile?: { name?: string } }[];
     for (const m of (v.messages ?? []) as Record<string, unknown>[]) {
       const from = String(m.from ?? "");
@@ -28,15 +29,16 @@ export function parseIncoming(body: unknown): WaIncoming[] {
       out.push({
         from, id: String(m.id ?? ""), type: String(m.type ?? ""), text,
         name: contacts.find((x) => x.wa_id === from)?.profile?.name ?? "",
-        groupId: (m.group_id as string | undefined) ?? undefined,
+        groupId: (m.group_id as string | undefined) ?? undefined, phoneId,
       });
     }
   }
   return out;
 }
 
-export async function sendText(to: string, text: string) {
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+// עונים מאותו מספר שההודעה הגיעה אליו (phoneId), ואם אין – מהמספר שבהגדרות
+export async function sendText(to: string, text: string, fromPhoneId?: string) {
+  const phoneId = fromPhoneId || process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
   const token = process.env.WHATSAPP_TOKEN?.trim();
   if (!phoneId || !token) throw new Error("WhatsApp is not configured");
   const res = await fetch(`https://graph.facebook.com/${VERSION()}/${phoneId}/messages`, {
