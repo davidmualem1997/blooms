@@ -1413,3 +1413,13 @@ button.urgent-card.new { box-shadow: 0 0 0 1.5px var(--no); }
 
 /* כותרת החודש באמצע, החצים משני הצדדים */
 .calhead h2 { flex: 1; text-align: center; }
+
+/* קאבר מתוך הסרטון */
+.frame-pick { display: grid; gap: 10px; background: var(--soft); border-radius: 18px; padding: 12px; }
+.frame-pick video { width: 100%; max-height: 52vh; border-radius: 12px; background: #000; object-fit: contain; }
+.frame-pick input[type="range"] { width: 100%; accent-color: var(--ink); }
+
+/* כל המדיה */
+.media-kinds { margin-top: 4px; }
+.media-month { margin-top: 18px; }
+.media-month .feed { margin-top: 8px; }

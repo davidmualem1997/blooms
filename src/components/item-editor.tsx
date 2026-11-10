@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { deleteItem, saveItem } from "@/app/(app)/c/[clientId]/gantt/actions";
+import { deleteItem, mediaUrl, saveItem } from "@/app/(app)/c/[clientId]/gantt/actions";
 import { uploadMedia, type MediaEntry } from "@/lib/media-client";
 import { STATUS_LABEL, TYPE_LABEL, type ContentItem, type ContentStatus, type ContentType } from "@/lib/types";
 import { Sheet } from "./sheet";
+import { FramePicker } from "./frame-picker";
 import { POST_STATS } from "@/lib/report-calc";
 import { saveMedia } from "@/lib/share-media";
 
@@ -56,6 +57,13 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
       setCover({ path: entry.path, thumb: entry.thumb });
       setCoverPreview(URL.createObjectURL(file));
     } finally { setCoverBusy(false); }
+  }
+  // קאבר מתוך הסרטון: הקובץ המקומי אם רק הועלה, אחרת קישור חתום מהשרת
+  const firstVideo = media.find((m) => m.kind === "video");
+  const [frameSrc, setFrameSrc] = useState<string | null>(null);
+  async function openFrames() {
+    if (!firstVideo) return;
+    setFrameSrc(firstVideo.preview ?? thumbs[firstVideo.path] ?? (await mediaUrl(firstVideo.path, false)));
   }
   const [toast, setToast] = useState("");
   const live = status === "live";
@@ -173,7 +181,10 @@ export function ItemEditor({ clientId, studioId, thumbs, target, onClose }: {
             <input type="file" accept="image/*" hidden onChange={(e) => { addCover(e.target.files?.[0]); e.target.value = ""; }} />
             {coverBusy ? "מעלים…" : cover ? "החלפת קאבר" : "+ תמונת קאבר"}
           </label>
+          {firstVideo && !frameSrc && <button type="button" className="cover-add" onClick={openFrames}>מתוך הסרטון</button>}
         </div>
+        {frameSrc && <FramePicker src={frameSrc} onCancel={() => setFrameSrc(null)}
+          onPick={async (file) => { await addCover(file); setFrameSrc(null); }} />}
         {/* כותרת = נושא הפוסט (מה שמופיע בגאנט). ריק → השורה הראשונה של הטקסט. ליד: הורדה / העתקת טקסט */}
         <div className="ed-head">
           <input name="title" className="ed-title" defaultValue={it?.title ?? target.preset?.title ?? ""} placeholder={TYPE_LABEL[type]} aria-label="נושא" />

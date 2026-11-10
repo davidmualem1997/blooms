@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// המעבר בתוך "סושיאל": פיד · טיקטוק · סטוריז
+// המעבר בתוך "סושיאל": פיד · טיקטוק · סטוריז · כל המדיה
 const TABS = [
   { href: "/instagram", label: "פיד" },
   { href: "/tiktok", label: "טיקטוק" },
   { href: "/stories", label: "סטוריז" },
+  { href: "/media", label: "כל המדיה" },
 ];
 
 export function SocialTabs({ clientId }: { clientId: string }) {
