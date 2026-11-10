@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Chevron } from "./chevron";
-import { CoverEdit, LogoEdit } from "./hero-brand-edit";
 import { memberName, type AppContext } from "@/lib/context";
-import { israelToUTC, longToday, shortDate, todayIL } from "@/lib/dates";
+import { israelToUTC, shortDate, todayIL } from "@/lib/dates";
 import { signPaths } from "@/lib/media-server";
 import { createClient } from "@/lib/supabase/server";
 import { loadToday } from "@/lib/today";
@@ -53,7 +52,7 @@ export async function Dashboard({ ctx, clients, portal, tab = "today", tabConten
   const names = Object.fromEntries(ctx.clients.map((c) => [c.id, c.name]));
   const brandPaths = clients.flatMap((c) => {
     const b = c.brand as { logo_path?: string; cover_path?: string };
-    return [b?.logo_path, portal ? b?.cover_path : undefined];
+    return [b?.logo_path];
   });
   const todayThumbs = data.perClient.flatMap((p) => p.rows.flatMap((r) => (r.kind === "item"
     ? [...r.item.media.map((m) => m.thumb), r.item.thumb_path, ...(r.item.thumb_path ? [] : r.item.media.filter((m) => m.kind === "video").map((m) => m.path))]
@@ -69,27 +68,15 @@ export async function Dashboard({ ctx, clients, portal, tab = "today", tabConten
   const firstName = ctx.profile.full_name.split(" ")[0];
 
   const client = clients[0];
-  const brand = (client?.brand ?? {}) as { logo_path?: string; cover_path?: string };
 
   return (
     <>
       {portal ? (
-        <div className="phero">
-          <div className="cover" style={brand.cover_path && signed[brand.cover_path] ? { backgroundImage: `url(${signed[brand.cover_path]})` } : undefined}>
-            <CoverEdit clientId={client.id} studioId={client.studio_id} />
-          </div>
-          <div className="phero-row">
-            <span className="logo-wrap">
-              <Avatar src={brand.logo_path ? signed[brand.logo_path] : null} name={client.name} size={76} color={client.color} />
-              <LogoEdit clientId={client.id} studioId={client.studio_id} />
-            </span>
-            <div>
-              <h1 className="display-title">{client.name}</h1>
-              <div className="txt">
-                {longToday(today)} · מנהל/ת לקוח: {memberName(ctx, client.manager_id)}
-                {isOwner && <> · <Link className="edit" href={`/c/${client.id}/file?tab=settings`}>שינוי</Link></>}
-              </div>
-            </div>
+        <div className="phead">
+          <h1 className="display-title">{client.name}</h1>
+          <div className="txt">
+            מנהל/ת לקוח: {memberName(ctx, client.manager_id)}
+            {isOwner && <> · <Link className="edit" href={`/c/${client.id}/file?tab=settings`}>שינוי</Link></>}
           </div>
         </div>
       ) : (

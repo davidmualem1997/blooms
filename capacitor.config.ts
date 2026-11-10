@@ -17,11 +17,11 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: "never", // ה-CSS כבר מטפל באזורים הבטוחים (notch, פס הבית)
-    backgroundColor: "#f5f5f7",
+    backgroundColor: "#ffffff",
     scheme: "BLOOMS",
   },
   plugins: {
-    SplashScreen: { launchShowDuration: 600, backgroundColor: "#f5f5f7", showSpinner: false },
+    SplashScreen: { launchShowDuration: 600, backgroundColor: "#ffffff", showSpinner: false },
     StatusBar: { overlaysWebView: true, style: "DEFAULT" },
     // גם כשהאפליקציה פתוחה – מציגים את ההתראה כבאנר
     PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },

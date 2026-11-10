@@ -20,7 +20,7 @@ export const viewport: Viewport = {
   maximumScale: 1, // בלי זום אוטומטי כשנוגעים בשדה (הגדלה בשתי אצבעות עדיין עובדת באייפון)
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
