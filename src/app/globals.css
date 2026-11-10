@@ -1386,3 +1386,11 @@ button.urgent-card.new { box-shadow: 0 0 0 1.5px var(--no); }
 .close-thread { justify-self: center; color: var(--sub); }
 .rem-plus { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--page); font-size: 17px; line-height: 1; display: grid; place-items: center; }
 .rem-plus:active { transform: scale(0.9); }
+
+/* ---------- "השבוע" אצל הלקוח: רשימה; מה שעלה – עם קו עליו ---------- */
+.week-list { padding-block: 4px; }
+.wl-day + .wl-day { border-top: 0.5px solid var(--sep); padding-top: 4px; }
+.wl-head { display: block; font-size: 13px; color: var(--sub); padding-top: 10px; }
+.wl-day .rem + .rem { border-top: 0; }
+.wl-day .rem { min-height: 38px; padding-block: 4px; }
+.rem-ic { flex: none; width: 22px; display: grid; place-items: center; color: var(--sub); }
