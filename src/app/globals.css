@@ -1063,7 +1063,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .calday[role="button"] { cursor: pointer; justify-content: flex-start; }
 .calday[role="button"]:active { background: var(--soft); }
 .cnum { align-self: center; min-width: 26px; height: 26px; padding-inline: 4px; border-radius: 99px; display: grid; place-items: center; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
-.calday.sat .cnum { color: var(--no); }
 .calday.past .cnum { color: var(--muted); }
 .calday.today .cnum { background: var(--ink); color: var(--page); font-weight: 600; }
 .calday.today { background: color-mix(in srgb, var(--ink) 4%, transparent); }
@@ -1411,3 +1410,6 @@ button.urgent-card.new { box-shadow: 0 0 0 1.5px var(--no); }
 .layer[aria-pressed="true"] { background: var(--soft); color: var(--ink); box-shadow: none; }
 .layer[aria-pressed="false"] .hsw, .layer[aria-pressed="false"] .cicon { opacity: 0.4; }
 .layer.all[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+
+/* כותרת החודש באמצע, החצים משני הצדדים */
+.calhead h2 { flex: 1; text-align: center; }

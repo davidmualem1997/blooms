@@ -10,6 +10,7 @@ import { ContentIcon } from "@/components/content-icon";
 import { MONTHS, WEEKDAYS, parseISODate } from "@/lib/dates";
 import { STATUS_LABEL, TYPE_LABEL, type ClientEvent, type ContentItem, type OneOffStory, type RecurringStory } from "@/lib/types";
 import type { CalEvent } from "@/lib/holidays";
+import { PlanImport } from "./plan-import";
 import { addClientEvent, addOneOff, addRecurring, deleteClientEvent, deleteOneOff, deleteRecurring, setRecurringDays, setStoryDoneOn } from "./actions";
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
   special: CalEvent[]; custom: ClientEvent[];
   openItem?: string; // מהתראה: פותח את הפריט ישר
   title: string; // שם החודש
-  nav: React.ReactNode; // חצים למעבר בין חודשים
+  prev: React.ReactNode; next: React.ReactNode; // חצים למעבר בין חודשים, משני צדי הכותרת
 };
 
 // בלוח: השם המלא עד 60 תווים, בשבירת שורות (בלי חיתוך באמצע)
@@ -74,8 +75,9 @@ export function GanttBoard(p: Props) {
       {/* לוח החודש: משטח לבן רציף אחד, בלי רווחים בין הימים – רק קו דק בין השבועות */}
       <div className="calcard">
         <div className="calhead">
+          {p.prev}
           <h2>{p.title}</h2>
-          <div className="calnavs">{p.nav}</div>
+          {p.next}
         </div>
         <div className="layers" role="group" aria-label="מה להציג בלוח">
           <button type="button" className="layer all" aria-pressed={allOn} onClick={() => setLayers(new Set(ALL))}>הכול</button>
@@ -118,7 +120,7 @@ export function GanttBoard(p: Props) {
         </div>
       </div>
 
-
+      {p.canEdit && <PlanImport clientId={p.clientId} studioId={p.studioId} />}
 
       <section className="sec">
         <div className="label dotted">סטוריז קבועים</div>

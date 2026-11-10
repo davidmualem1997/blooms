@@ -47,11 +47,8 @@ export default async function GanttPage({ params, searchParams }: PageProps<"/c/
         key={typeof sp.item === "string" ? sp.item : "board"}
         openItem={typeof sp.item === "string" ? sp.item : undefined}
         title={`${MONTHS[mm - 1]} ${y}`}
-        nav={<>
-          <Link href={`?m=${prev}`} className="calnav" aria-label="חודש קודם"><Chevron dir="back" /></Link>
-          <Link href={`?m=${today.slice(0, 7)}`} className="calnav today-btn" aria-label="החודש הנוכחי">היום</Link>
-          <Link href={`?m=${next}`} className="calnav" aria-label="חודש הבא"><Chevron dir="forward" /></Link>
-        </>}
+        prev={<Link href={`?m=${prev}`} className="calnav" aria-label="חודש קודם"><Chevron dir="back" /></Link>}
+        next={<Link href={`?m=${next}`} className="calnav" aria-label="חודש הבא"><Chevron dir="forward" /></Link>}
         clientId={clientId}
         studioId={studioId}
         thumbs={thumbs}
