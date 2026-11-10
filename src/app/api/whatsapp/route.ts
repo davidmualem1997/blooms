@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       try {
         await sendText(m.from, `קיבלתי ✓ ${m.text ? `"${m.text.slice(0, 200)}"` : `(${m.type})`}\nהבוט של BLOOMS בבנייה – בקרוב אדע גם לענות.`);
       } catch (e) {
-        console.error("whatsapp reply", e);
+        // זמני: פורמט המספר בלבד (ספרות ראשונות ואחרונות), לבירור רשימת הנמענים של מספר הבדיקה
+        console.error("whatsapp reply", m.from.length, `${m.from.slice(0, 5)}…${m.from.slice(-2)}`, e);
       }
     }
   });
