@@ -21,6 +21,17 @@ export async function POST(request: NextRequest) {
     return new NextResponse("bad signature", { status: 401 });
   }
   const body = JSON.parse(raw);
+  // זמני: בדיקה וחיבור של חשבון הוואטסאפ לאפליקציה (רק עם חתימה של ה-App Secret)
+  if (body?.diag === "subscribe" && /^\d+$/.test(String(body.waba))) {
+    const token = process.env.WHATSAPP_TOKEN?.trim();
+    const url = `https://graph.facebook.com/v24.0/${body.waba}/subscribed_apps`;
+    const before = await (await fetch(url, { headers: { authorization: `Bearer ${token}` } })).json();
+    const sub = await (await fetch(url, { method: "POST", headers: { authorization: `Bearer ${token}` } })).json();
+    const after = await (await fetch(url, { headers: { authorization: `Bearer ${token}` } })).json();
+    const phone = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+    const cfg = phone ? await (await fetch(`https://graph.facebook.com/v24.0/${phone}?fields=webhook_configuration`, { headers: { authorization: `Bearer ${token}` } })).json() : null;
+    return NextResponse.json({ before, sub, after, cfg, envPhoneMatches: phone === "1382561721615227" });
+  }
   const messages = parseIncoming(body);
   // זמני, לבדיקת החיבור: רק מבנה ההודעה (שמות שדות), בלי התוכן
   const v = body?.entry?.[0]?.changes?.[0]?.value;
