@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { reorderDates } from "@/app/(app)/c/[clientId]/gantt/actions";
 import { parseISODate, toISODate } from "@/lib/dates";
 import type { ContentItem } from "@/lib/types";
+import { ClientItemSheet } from "./client-item-sheet";
 import { ItemEditor, type EditorTarget } from "./item-editor";
 
 const Play = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>;
@@ -71,6 +72,7 @@ export function FeedPlanner({ clientId, studioId, items, thumbs, today, canEdit,
           <button className="edit" onClick={() => setBlanks((b) => b + 3)}>+ שורה ריקה</button>
         </div>
       )}
+      {editor?.item && !canEdit && <ClientItemSheet clientId={clientId} item={editor.item} urls={thumbs} onClose={() => setEditor(null)} />}
       {editor && canEdit && (
         <ItemEditor clientId={clientId} studioId={studioId} thumbs={thumbs} target={editor}
           onClose={() => { if (!editor.item) setBlanks((b) => Math.max(0, b - 1)); setEditor(null); }} />
