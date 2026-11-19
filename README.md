@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BLOOMS
 
-## Getting Started
+[![CI](https://github.com/davidmualem1997/blooms/actions/workflows/ci.yml/badge.svg)](https://github.com/davidmualem1997/blooms/actions/workflows/ci.yml)
 
-First, run the development server:
+מערכת לניהול סושיאל מדיה לסטודיו: גאנט תוכן, תכנון פיד אינסטגרם וטיקטוק, סטוריז, אישורי לקוח, פניות, תיק לקוח, דוח חודשי, התראות Push ובוט וואטסאפ לצוות.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**באוויר:** https://blooms-phi.vercel.app · אפליקציית iOS (Capacitor) טוענת את אותו אתר.
+
+## טכנולוגיות
+
+| שכבה | מה |
+|---|---|
+| אפליקציה | Next.js 16 (App Router, Server Actions), React, TypeScript |
+| נתונים והרשאות | Supabase – Postgres עם Row Level Security, Storage, Auth (Google) |
+| AI | OpenAI – ייבוא תיק לקוח מ-PDF/אתר, ייבוא תכנון מ-PDF/תמונה, עוזר, בוט וואטסאפ |
+| אינטגרציות | Meta (Instagram/Facebook), WhatsApp Cloud API, Web Push |
+| אירוח | Vercel |
+
+## CI/CD
+
+```mermaid
+flowchart LR
+  A[git push] --> B[GitHub Actions: CI]
+  B --> B1[Typecheck] --> B2[Lint] --> B3[Unit tests] --> B4[Build]
+  A --> C[Vercel]
+  C -->|main| D[Production]
+  C -->|app / PR| E[Preview]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **CI** – [`.github/workflows/ci.yml`](.github/workflows/ci.yml) רץ על כל push ל-`main`/`app` ועל כל Pull Request: בדיקת טיפוסים, ESLint, בדיקות יחידה (`tests/*.test.ts`) ובנייה מלאה. הבנייה לא צריכה סודות.
+- **CD** – Vercel מחובר לריפו: `main` מתפרסם אוטומטית לפרודקשן, ענפים אחרים ו-PR מקבלים כתובת Preview. בנייה שנכשלת לא מתפרסמת, והגרסה הקודמת נשארת באוויר.
+- **מסד נתונים** – שינויים בסכמה הם קבצי SQL ב-[`supabase/migrations`](supabase/migrations), ומוחלים עם `npx supabase db push --linked`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## פיתוח מקומי
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm ci
+cp .env.example .env.local   # או לקבל את הערכים מהמנהל
+npm run dev
+```
 
-## Learn More
+| פקודה | מה עושה |
+|---|---|
+| `npm run dev` | שרת פיתוח |
+| `npm run typecheck` | בדיקת טיפוסים |
+| `npm run lint` | ESLint |
+| `npm test` | בדיקות יחידה |
+| `npm run build` | בנייה לפרודקשן |
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+הגדרת הפרויקט מאפס (Supabase, Google, Vercel): [SETUP.md](SETUP.md).
